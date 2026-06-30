@@ -32,7 +32,8 @@ var qrKey=null,qrTimer=null,neteaseOpen=false,audioRetryCount=0,qrLoginBusy=fals
 
 // Album art background state
 var bgImgToggle=false;      // false=A active, true=B active
-var bgCurrentUrl='';         // URL currently displayed
+var bgCurrentUrl='';         // URL currently displayed / loading
+var bgLoadId=0;              // monotonic counter to cancel stale loads
 
 // Utilities
 function loadPlaylist(){try{var r=localStorage.getItem(STORAGE_KEY);if(r){var p=JSON.parse(r);if(Array.isArray(p))playlist=p}}catch(e){}}
@@ -61,57 +62,51 @@ function getActiveBgImg(){return bgImgToggle?domLyricBgImgB:domLyricBgImgA}
 function getHiddenBgImg(){return bgImgToggle?domLyricBgImgA:domLyricBgImgB}
 
 function setLyricBackground(albumArtUrl){
-  if(!albumArtUrl){
-    hideLyricBackground();
-    return;
-  }
+  // 取消之前所有正在加载的图片
+  bgLoadId++;
+  var myLoadId=bgLoadId;
 
-  // 同一 URL 且背景层已显示 → 无需处理
+  if(!albumArtUrl){hideLyricBackground();return}
+  // 切歌时清除旧防重标记，强制重新评估
+  domLyricBgImgA.dataset.src='';
+  domLyricBgImgB.dataset.src='';
+
   if(albumArtUrl===bgCurrentUrl&&domLyricBgWrapper.classList.contains('show'))return;
   bgCurrentUrl=albumArtUrl;
 
-  // 显示背景层
-  domLyricBgWrapper.classList.add('show');
-
   var hidden=getHiddenBgImg();
-  // 防止重复加载已在显示中的 URL
-  if(hidden.dataset.src===albumArtUrl)return;
+  // 如果隐藏图已经是这个 URL，直接交叉淡入
+  if(hidden.src&&hidden.src===albumArtUrl){
+    var active=getActiveBgImg();
+    active.classList.add('fade-out');active.classList.remove('fade-in');
+    hidden.classList.remove('fade-out');hidden.classList.add('fade-in');
+    bgImgToggle=!bgImgToggle;hidden.dataset.src=albumArtUrl;
+    domLyricBgWrapper.classList.add('show');
+    return;
+  }
 
-  // 预加载新图片
+  domLyricBgWrapper.classList.add('show');
   var preload=new Image();
   preload.onload=function(){
-    // 确保没有被中途取消
-    if(bgCurrentUrl!==albumArtUrl)return;
-
-    hidden.src=albumArtUrl;
-    hidden.dataset.src=albumArtUrl;
-
-    // 交叉淡入淡出
+    if(bgLoadId!==myLoadId)return;  // 被后续调用取消了
+    hidden.src=albumArtUrl;hidden.dataset.src=albumArtUrl;
     var active=getActiveBgImg();
-    active.classList.add('fade-out');
-    active.classList.remove('fade-in');
-    hidden.classList.remove('fade-out');
-    hidden.classList.add('fade-in');
-
-    // 切换 active 标记
+    active.classList.add('fade-out');active.classList.remove('fade-in');
+    hidden.classList.remove('fade-out');hidden.classList.add('fade-in');
     bgImgToggle=!bgImgToggle;
   };
   preload.onerror=function(){
-    // 加载失败不切换，保留现状；清空状态以允许重试
+    if(bgLoadId!==myLoadId)return;
     if(bgCurrentUrl===albumArtUrl)bgCurrentUrl='';
-    hidden.dataset.src='';
   };
   preload.src=albumArtUrl;
 }
 
 function hideLyricBackground(){
-  bgCurrentUrl='';
-  // 清除图片的 data 标记，允许下次重新加载同一 URL
-  domLyricBgImgA.dataset.src='';
-  domLyricBgImgB.dataset.src='';
-  var a=getActiveBgImg(),b=getHiddenBgImg();
-  a.classList.add('fade-out');a.classList.remove('fade-in');
-  b.classList.add('fade-out');b.classList.remove('fade-in');
+  bgLoadId++;bgCurrentUrl='';
+  domLyricBgImgA.dataset.src='';domLyricBgImgB.dataset.src='';
+  domLyricBgImgA.classList.add('fade-out');domLyricBgImgA.classList.remove('fade-in');
+  domLyricBgImgB.classList.add('fade-out');domLyricBgImgB.classList.remove('fade-in');
   domLyricBgWrapper.classList.remove('show');
 }
 
