@@ -43,47 +43,38 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .lyric-bg-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(6,6,13,.35) 0%,rgba(6,6,13,.75) 70%,rgba(6,6,13,.92) 100%)}
 
 /* ===== 桌面歌词悬浮面板 ===== */
-.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;display:none;text-align:center}
-.center-lyrics.show{display:block;text-align:center}
+.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;display:none}
+.center-lyrics.show{display:block}
 
-/* 胶囊形毛玻璃面板 — 自适应宽度 */
-.lyric-glass-panel{position:relative;display:inline-block;padding:28px 60px;border-radius:48px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 32px 96px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.35);transition:opacity .5s;animation:panelEnter .55s cubic-bezier(.23,1,.32,1) both;max-width:90vw;min-width:280px;text-align:center}
+/* 胶囊形毛玻璃面板 */
+.lyric-glass-panel{position:relative;display:inline-block;padding:40px 64px;border-radius:48px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 32px 96px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.35);transition:opacity .5s;animation:panelEnter .55s cubic-bezier(.23,1,.32,1) both;max-width:90vw;min-width:280px;text-align:center}
 @keyframes panelEnter{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-/* 滚动视口 — 固定高度裁剪，内容在内部由 JS translateY 滚动 */
-.lyric-viewport{position:relative;width:auto;height:300px;overflow:hidden}
+/* 歌词行栈 */
+.lyric-lines-stack{display:flex;flex-direction:column;align-items:center;gap:12px}
 
-/* 歌词行栈 — normal flow，宽度 = 最宽行，玻璃面板自适应 */
-.lyric-lines-stack{position:relative;will-change:transform;transition:none!important;animation:none!important}
-
-
-/* 通用歌词行 — 固定高度确保物理计算精确 */
-.lyric-line{font-family:'Inter','SF Pro Display','Source Han Sans SC','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;font-weight:400;letter-spacing:.05em;display:flex;align-items:center;justify-content:center;height:80px;white-space:nowrap;transition:none!important;padding:0}
+/* 通用歌词行 */
+.lyric-line{font-family:'Inter','SF Pro Display','Source Han Sans SC','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;font-weight:400;letter-spacing:.05em;line-height:1.5;white-space:nowrap;display:block;position:relative}
 
 /* 偏远行 */
-.lyric-line.far-before,.lyric-line.far-after{font-size:14px;color:rgba(255,255,255,.06);font-weight:300}
-
-/* 中等距离行 */
-.lyric-line.mid-before,.lyric-line.mid-after{font-size:16px;color:rgba(255,255,255,.12);font-weight:350}
-
+.lyric-line.far-before,.lyric-line.far-after{font-size:16px;color:rgba(255,255,255,.08);font-weight:300}
 /* 相邻行 */
-.lyric-line.near-before,.lyric-line.near-after{font-size:20px;color:rgba(255,255,255,.22);font-weight:400}
-
+.lyric-line.near-before,.lyric-line.near-after{font-size:20px;color:rgba(255,255,255,.18);font-weight:400}
 /* 当前行 */
-.lyric-line.current{font-size:42px;font-weight:700;letter-spacing:.06em;color:#fff;text-shadow:0 0 20px rgba(255,255,255,.4),0 0 60px rgba(180,160,255,.25);animation:none!important}
+.lyric-line.current{font-size:46px;font-weight:700;letter-spacing:.06em;color:#fff;text-shadow:0 0 20px rgba(255,255,255,.4),0 0 60px rgba(180,160,255,.25)}
 
 /* 逐单词 */
 .lyric-word{display:inline-block;transition:color .12s ease-out,text-shadow .12s ease-out;margin:0 .08em}
 .lyric-word.pending{color:rgba(255,255,255,.22);text-shadow:none}
 .lyric-word.passed{color:#00e0f0;text-shadow:0 0 8px rgba(0,224,240,.3)}
-.lyric-word.active{color:#fff;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 18px rgba(255,255,255,.5),0 0 36px rgba(0,240,255,.7);animation:wordPulse .8s ease-in-out infinite}
-@keyframes wordPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.lyric-word.active{color:#fff;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 18px rgba(255,255,255,.5),0 0 36px rgba(0,240,255,.7);animation-name:wordPulse;animation-timing-function:ease-in-out;animation-iteration-count:infinite}
+@keyframes wordPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 
 /* 非当前行 */
 .lyric-line:not(.current){color:rgba(255,255,255,.1)}
 
 /* 无歌词 */
-.lyric-viewport .no-lyrics{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;color:rgba(255,255,255,.15);letter-spacing:.1em;font-family:'Inter','PingFang SC','Microsoft YaHei',sans-serif;font-weight:300}
+.lyric-glass-panel .no-lyrics{font-size:17px;color:rgba(255,255,255,.15);letter-spacing:.1em;font-family:'Inter','PingFang SC','Microsoft YaHei',sans-serif;font-weight:300}
 
 .left-zone{position:fixed;left:50px;top:40px;z-index:10;max-width:380px}
 .now-playing-area{pointer-events:none}
@@ -210,23 +201,19 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 @media(max-width:900px){
   .left-zone{left:20px;top:20px;max-width:220px}
   .now-playing-title{font-size:20px}
-  .lyric-glass-panel{padding:22px 44px;border-radius:36px;max-width:88vw;min-width:220px}
-  .lyric-viewport{height:240px}
-  .lyric-line.current{font-size:32px}
+  .lyric-glass-panel{padding:28px 40px;border-radius:36px;max-width:88vw;min-width:220px}
+  .lyric-line.current{font-size:34px}
   .lyric-line.near-before,.lyric-line.near-after{font-size:16px}
-  .lyric-line.mid-before,.lyric-line.mid-after{font-size:13px}
-  .lyric-line.far-before,.lyric-line.far-after{font-size:11px}
+  .lyric-line.far-before,.lyric-line.far-after{font-size:13px}
   .lyric-bg-image{width:80vmin;height:80vmin;max-width:500px;max-height:500px}
   .playlist-panel{right:10px;width:340px;max-height:75vh;border-radius:14px}
   .player-bar{min-width:auto;max-width:calc(100vw - 40px)}
 }
 @media(max-width:640px){
   .left-zone{position:relative;left:auto;top:auto;max-width:100%;padding:16px 16px 0;text-align:center}
-  .lyric-glass-panel{padding:18px 24px;border-radius:28px;max-width:92vw;min-width:auto}
-  .lyric-viewport{height:180px}
+  .lyric-glass-panel{padding:18px 20px;border-radius:28px;max-width:92vw;min-width:auto}
   .lyric-line.current{font-size:24px}
   .lyric-line.near-before,.lyric-line.near-after{font-size:13px}
-  .lyric-line.mid-before,.lyric-line.mid-after{font-size:11px}
   .lyric-line.far-before,.lyric-line.far-after{font-size:10px}
   .lyric-bg-image{width:90vmin;height:90vmin;max-width:350px;max-height:350px;min-width:200px;min-height:200px}
   .playlist-panel{right:auto;top:auto;transform:none;width:calc(100% - 16px);margin:0 8px;max-height:45vh;position:relative}
@@ -250,9 +237,7 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 
 <div class="center-lyrics" id="centerLyrics">
   <div class="lyric-glass-panel">
-    <div class="lyric-viewport" id="lyricViewport">
-      <div class="lyric-lines-stack" id="lyricLinesStack"></div>
-    </div>
+    <div class="lyric-lines-stack" id="lyricLinesStack"></div>
   </div>
 </div>
 
