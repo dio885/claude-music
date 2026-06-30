@@ -168,7 +168,28 @@ function cleanLyricsText(t){if(!t)return'';var ls=t.split('\n'),cl=[];for(var i=
 function parseLyricsToLines(t){if(!t||!t.trim())return[];var txt=cleanLyricsText(t);if(!txt.trim())return[];var ls=txt.split('\n'),res=[];for(var i=0;i<ls.length;i++){var l=ls[i].trim();if(!l)continue;var m=l.match(/^\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]\s*(.*)/);if(m){var min=parseInt(m[1]),sec=parseInt(m[2]),ms=m[3]?parseInt(m[3].padEnd(3,'0')):0,time=min*60+sec+ms/1000,text=(m[4]||'').trim();if(text)res.push({time:time,text:text})}else{res.push({time:-1,text:l})}}res.sort(function(a,b){return a.time-b.time});return res}
 function findCurrentLyricIdx(){if(!lyricLinesArr.length)return 0;if(!lyricLinesArr.some(function(l){return l.time>=0}))return currentLyricIdx;var ct=(domAudio.currentTime||0)+lyricTimeOffset,idx=0;for(var i=0;i<lyricLinesArr.length;i++){if(lyricLinesArr[i].time>=0&&lyricLinesArr[i].time<=ct)idx=i;else if(lyricLinesArr[i].time>ct)break}return idx}
 
-function renderCenterLyrics(){domLyricLines.innerHTML='';if(!lyricLinesArr.length){domLyricLines.innerHTML='<span class="no-lyrics">暂无歌词</span>';return}var idx=currentLyricIdx;if(idx>=1){var ps=document.createElement('span');ps.className='lyric-line past';ps.textContent=lyricLinesArr[idx-1].text;domLyricLines.appendChild(ps)}var cur=lyricLinesArr[idx],ce=document.createElement('span');ce.className='lyric-line current';ce.textContent=cur.text;if(cur.time>=0){ce.dataset.lyricTime=cur.time;ce.dataset.lyricNextTime=(idx+1<lyricLinesArr.length&&lyricLinesArr[idx+1].time>cur.time)?lyricLinesArr[idx+1].time:cur.time+5;var fl=document.createElement('span');fl.className='lyric-fill';fl.textContent=cur.text;fl.style.width='0%';ce.appendChild(fl)}domLyricLines.appendChild(ce);if(idx+1<lyricLinesArr.length){var nx=document.createElement('span');nx.className='lyric-line next';nx.textContent=lyricLinesArr[idx+1].text;domLyricLines.appendChild(nx)}if(idx+2<lyricLinesArr.length){var ft=document.createElement('span');ft.className='lyric-line future';ft.textContent=lyricLinesArr[idx+2].text;domLyricLines.appendChild(ft)}updateLyricFillProgress()}
+function renderCenterLyrics(){domLyricLines.innerHTML='';if(!lyricLinesArr.length){domLyricLines.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';return}
+  var stack=document.createElement('div');stack.className='lyric-lines-stack';
+  var idx=currentLyricIdx,total=lyricLinesArr.length;
+  var offsets=[-2,-1,0,1,2];
+  for(var k=0;k<offsets.length;k++){
+    var o=offsets[k],li=idx+o;
+    if(li<0||li>=total)continue;
+    var span=document.createElement('span');
+    span.textContent=lyricLinesArr[li].text;
+    if(o===0){
+      span.className='lyric-line current';
+      var cur=lyricLinesArr[li];
+      if(cur.time>=0){span.dataset.lyricTime=cur.time;span.dataset.lyricNextTime=(li+1<total&&lyricLinesArr[li+1].time>cur.time)?lyricLinesArr[li+1].time:cur.time+5;var fl=document.createElement('span');fl.className='lyric-fill';fl.textContent=cur.text;fl.style.width='0%';span.appendChild(fl)}
+    }else if(o===-2){span.className='lyric-line far-before'}
+    else if(o===-1){span.className='lyric-line near-before'}
+    else if(o===1){span.className='lyric-line near-after'}
+    else if(o===2){span.className='lyric-line far-after'}
+    stack.appendChild(span);
+  }
+  domLyricLines.appendChild(stack);
+  updateLyricFillProgress()
+}
 function updateLyricFillProgress(){var ce=domLyricLines.querySelector('.lyric-line.current');if(!ce)return;var fl=ce.querySelector('.lyric-fill');if(!fl)return;var lt=parseFloat(ce.dataset.lyricTime||'-1');if(lt<0)return;var nt=parseFloat(ce.dataset.lyricNextTime||(lt+5)),dur=nt-lt,el=Math.max(0,((domAudio.currentTime||0)+lyricTimeOffset)-lt),pct=Math.min(100,el/dur*100);fl.style.width=pct+'%'}
 function syncLyricFromAudioTime(){if(!isPlaying||!lyricLinesArr.length)return;if(!lyricLinesArr.some(function(l){return l.time>=0}))return;var ni=findCurrentLyricIdx();if(ni!==currentLyricIdx){currentLyricIdx=ni;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst()}else{updateLyricFillProgress()}}
 function startPlainLyricTimer(){if(lyricAdvanceTimer)clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null;if(lyricLinesArr.length<=1)return;if(lyricLinesArr.some(function(l){return l.time>=0}))return;if(isPlaying){lyricAdvanceTimer=setInterval(function(){if(!isPlaying)return;if(currentLyricIdx<lyricLinesArr.length-1){currentLyricIdx++;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst()}else{clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null}},4000)}}

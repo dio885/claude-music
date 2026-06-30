@@ -42,23 +42,38 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .lyric-bg-image.fade-in{opacity:.75;transform:translate(-50%,-50%) scale(1)}
 .lyric-bg-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(6,6,13,.35) 0%,rgba(6,6,13,.75) 70%,rgba(6,6,13,.92) 100%)}
 
-/* ===== 中心歌词区 ===== */
-.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;text-align:center;pointer-events:none;max-width:85vw;display:none}
+/* ===== 桌面歌词悬浮面板 ===== */
+.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;display:none}
 .center-lyrics.show{display:block}
 
-/* 毛玻璃面板 */
-.lyric-glass-panel{position:relative;padding:50px 70px;border-radius:26px;background:rgba(18,18,35,.38);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.2);transition:all .8s cubic-bezier(.23,1,.32,1);animation:glassIn .6s cubic-bezier(.23,1,.32,1) both}
-@keyframes glassIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+/* 胶囊形毛玻璃面板 */
+.lyric-glass-panel{position:relative;display:inline-block;padding:52px 68px;border-radius:48px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 32px 96px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.35);transition:all .5s cubic-bezier(.23,1,.32,1);animation:panelEnter .55s cubic-bezier(.23,1,.32,1) both;max-width:90vw;min-width:280px}
+@keyframes panelEnter{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-/* 歌词行 */
-.center-lyrics .lyric-line{transition:all .7s cubic-bezier(.23,1,.32,1);line-height:1.35;display:block}
-.center-lyrics .lyric-line.current{font-size:58px;font-weight:800;letter-spacing:4px;margin-bottom:16px;display:inline-block;position:relative;color:#fff;text-shadow:0 0 30px rgba(255,255,255,.45),0 0 80px rgba(180,160,255,.35),0 0 140px rgba(124,111,247,.25)}
-.center-lyrics .lyric-line.current>.lyric-fill{position:absolute;top:0;left:0;width:0;height:100%;white-space:nowrap;overflow:hidden;color:#00f3ff;text-shadow:0 0 20px rgba(0,243,255,.9),0 0 60px rgba(0,200,255,.7),0 0 120px rgba(100,180,255,.5),0 0 200px rgba(0,243,255,.3);pointer-events:none;animation:lyricGlow .8s infinite alternate}
-@keyframes lyricGlow{from{filter:brightness(1)}to{filter:brightness(1.3)}}
-.center-lyrics .lyric-line.next{font-size:22px;color:rgba(255,255,255,.35);margin-bottom:10px;letter-spacing:2px}
-.center-lyrics .lyric-line.future{font-size:16px;color:rgba(255,255,255,.15);margin-bottom:8px;letter-spacing:2px}
-.center-lyrics .lyric-line.past{font-size:18px;color:rgba(255,255,255,.1);opacity:0;margin-bottom:6px}
-.center-lyrics .no-lyrics{font-size:18px;color:rgba(255,255,255,.14);letter-spacing:3px}
+/* 歌词行栈 */
+.lyric-lines-stack{display:flex;flex-direction:column;align-items:center;gap:14px}
+
+/* 通用歌词行 */
+.lyric-line{font-family:'Inter','SF Pro Display','Source Han Sans SC','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;font-weight:400;letter-spacing:.05em;line-height:1.6;white-space:nowrap;display:block;transition:all .5s cubic-bezier(.23,1,.32,1);position:relative}
+
+/* 偏远行 — 最小最淡 */
+.lyric-line.far-before,.lyric-line.far-after{font-size:17px;color:rgba(255,255,255,.10);font-weight:300;letter-spacing:.03em}
+
+/* 相邻行 */
+.lyric-line.near-before,.lyric-line.near-after{font-size:20px;color:rgba(255,255,255,.18);font-weight:350}
+
+/* 紧邻行 */
+.lyric-line.prev,.lyric-line.next{font-size:24px;color:rgba(255,255,255,.32);font-weight:450}
+
+/* 当前行 — 高亮 + 呼吸动画 */
+.lyric-line.current{font-size:52px;font-weight:700;color:#fff;letter-spacing:.07em;text-shadow:0 0 20px rgba(255,255,255,.45),0 0 60px rgba(180,160,255,.3),0 0 100px rgba(124,111,247,.18),0 2px 6px rgba(0,0,0,.25);animation:lyricBreathe 3.2s ease-in-out infinite;position:relative;display:inline-block}
+@keyframes lyricBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.02)}}
+
+/* 卡拉OK进度填充 */
+.lyric-line.current>.lyric-fill{position:absolute;top:0;left:0;width:0;height:100%;white-space:nowrap;overflow:hidden;color:#00f0ff;text-shadow:0 0 14px rgba(0,240,255,.9),0 0 40px rgba(0,200,255,.7),0 0 80px rgba(100,180,255,.45);pointer-events:none}
+
+/* 无歌词 */
+.lyric-glass-panel .no-lyrics{font-size:17px;color:rgba(255,255,255,.15);letter-spacing:.1em;font-family:'Inter','PingFang SC','Microsoft YaHei',sans-serif;font-weight:300}
 
 .left-zone{position:fixed;left:50px;top:40px;z-index:10;max-width:380px}
 .now-playing-area{pointer-events:none}
@@ -185,16 +200,22 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 @media(max-width:900px){
   .left-zone{left:20px;top:20px;max-width:220px}
   .now-playing-title{font-size:20px}
-  .center-lyrics .lyric-line.current{font-size:40px}
-  .lyric-glass-panel{padding:36px 40px;border-radius:20px}
+  .lyric-line.current{font-size:37px}
+  .lyric-glass-panel{padding:38px 44px;border-radius:36px;max-width:88vw}
+  .lyric-lines-stack{gap:10px}
+  .lyric-line.far-before,.lyric-line.far-after{font-size:14px}
+  .lyric-line.near-before,.lyric-line.near-after{font-size:16px}
   .lyric-bg-image{width:80vmin;height:80vmin;max-width:500px;max-height:500px}
   .playlist-panel{right:10px;width:340px;max-height:75vh;border-radius:14px}
   .player-bar{min-width:auto;max-width:calc(100vw - 40px)}
 }
 @media(max-width:640px){
   .left-zone{position:relative;left:auto;top:auto;max-width:100%;padding:16px 16px 0;text-align:center}
-  .center-lyrics .lyric-line.current{font-size:30px}
-  .lyric-glass-panel{padding:24px 20px;border-radius:16px}
+  .lyric-line.current{font-size:28px}
+  .lyric-glass-panel{padding:28px 24px;border-radius:28px;max-width:92vw;min-width:auto}
+  .lyric-lines-stack{gap:8px}
+  .lyric-line.far-before,.lyric-line.far-after{font-size:12px}
+  .lyric-line.near-before,.lyric-line.near-after{font-size:14px}
   .lyric-bg-image{width:90vmin;height:90vmin;max-width:350px;max-height:350px;min-width:200px;min-height:200px}
   .playlist-panel{right:auto;top:auto;transform:none;width:calc(100% - 16px);margin:0 8px;max-height:45vh;position:relative}
   .player-bar{border-radius:18px;padding:8px 16px;min-width:auto;max-width:calc(100vw - 20px)}

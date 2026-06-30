@@ -19,23 +19,38 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .lyric-bg-image.fade-in{opacity:.75;transform:translate(-50%,-50%) scale(1)}
 .lyric-bg-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(6,6,13,.35) 0%,rgba(6,6,13,.75) 70%,rgba(6,6,13,.92) 100%)}
 
-/* ===== 中心歌词区 ===== */
-.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;text-align:center;pointer-events:none;max-width:85vw;display:none}
+/* ===== 桌面歌词悬浮面板 ===== */
+.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;display:none}
 .center-lyrics.show{display:block}
 
-/* 毛玻璃面板 */
-.lyric-glass-panel{position:relative;padding:50px 70px;border-radius:26px;background:rgba(18,18,35,.38);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.2);transition:all .8s cubic-bezier(.23,1,.32,1);animation:glassIn .6s cubic-bezier(.23,1,.32,1) both}
-@keyframes glassIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+/* 胶囊形毛玻璃面板 */
+.lyric-glass-panel{position:relative;display:inline-block;padding:52px 68px;border-radius:48px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 32px 96px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.35);transition:all .5s cubic-bezier(.23,1,.32,1);animation:panelEnter .55s cubic-bezier(.23,1,.32,1) both;max-width:90vw;min-width:280px}
+@keyframes panelEnter{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-/* 歌词行 */
-.center-lyrics .lyric-line{transition:all .7s cubic-bezier(.23,1,.32,1);line-height:1.35;display:block}
-.center-lyrics .lyric-line.current{font-size:58px;font-weight:800;letter-spacing:4px;margin-bottom:16px;display:inline-block;position:relative;color:#fff;text-shadow:0 0 30px rgba(255,255,255,.45),0 0 80px rgba(180,160,255,.35),0 0 140px rgba(124,111,247,.25)}
-.center-lyrics .lyric-line.current>.lyric-fill{position:absolute;top:0;left:0;width:0;height:100%;white-space:nowrap;overflow:hidden;color:#00f3ff;text-shadow:0 0 20px rgba(0,243,255,.9),0 0 60px rgba(0,200,255,.7),0 0 120px rgba(100,180,255,.5),0 0 200px rgba(0,243,255,.3);pointer-events:none;animation:lyricGlow .8s infinite alternate}
-@keyframes lyricGlow{from{filter:brightness(1)}to{filter:brightness(1.3)}}
-.center-lyrics .lyric-line.next{font-size:22px;color:rgba(255,255,255,.35);margin-bottom:10px;letter-spacing:2px}
-.center-lyrics .lyric-line.future{font-size:16px;color:rgba(255,255,255,.15);margin-bottom:8px;letter-spacing:2px}
-.center-lyrics .lyric-line.past{font-size:18px;color:rgba(255,255,255,.1);opacity:0;margin-bottom:6px}
-.center-lyrics .no-lyrics{font-size:18px;color:rgba(255,255,255,.14);letter-spacing:3px}
+/* 歌词行栈 */
+.lyric-lines-stack{display:flex;flex-direction:column;align-items:center;gap:14px}
+
+/* 通用歌词行 */
+.lyric-line{font-family:'Inter','SF Pro Display','Source Han Sans SC','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;font-weight:400;letter-spacing:.05em;line-height:1.6;white-space:nowrap;display:block;transition:all .5s cubic-bezier(.23,1,.32,1);position:relative}
+
+/* 偏远行 — 最小最淡 */
+.lyric-line.far-before,.lyric-line.far-after{font-size:17px;color:rgba(255,255,255,.10);font-weight:300;letter-spacing:.03em}
+
+/* 相邻行 */
+.lyric-line.near-before,.lyric-line.near-after{font-size:20px;color:rgba(255,255,255,.18);font-weight:350}
+
+/* 紧邻行 */
+.lyric-line.prev,.lyric-line.next{font-size:24px;color:rgba(255,255,255,.32);font-weight:450}
+
+/* 当前行 — 高亮 + 呼吸动画 */
+.lyric-line.current{font-size:52px;font-weight:700;color:#fff;letter-spacing:.07em;text-shadow:0 0 20px rgba(255,255,255,.45),0 0 60px rgba(180,160,255,.3),0 0 100px rgba(124,111,247,.18),0 2px 6px rgba(0,0,0,.25);animation:lyricBreathe 3.2s ease-in-out infinite;position:relative;display:inline-block}
+@keyframes lyricBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.02)}}
+
+/* 卡拉OK进度填充 */
+.lyric-line.current>.lyric-fill{position:absolute;top:0;left:0;width:0;height:100%;white-space:nowrap;overflow:hidden;color:#00f0ff;text-shadow:0 0 14px rgba(0,240,255,.9),0 0 40px rgba(0,200,255,.7),0 0 80px rgba(100,180,255,.45);pointer-events:none}
+
+/* 无歌词 */
+.lyric-glass-panel .no-lyrics{font-size:17px;color:rgba(255,255,255,.15);letter-spacing:.1em;font-family:'Inter','PingFang SC','Microsoft YaHei',sans-serif;font-weight:300}
 
 .left-zone{position:fixed;left:50px;top:40px;z-index:10;max-width:380px}
 .now-playing-area{pointer-events:none}
@@ -162,16 +177,22 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 @media(max-width:900px){
   .left-zone{left:20px;top:20px;max-width:220px}
   .now-playing-title{font-size:20px}
-  .center-lyrics .lyric-line.current{font-size:40px}
-  .lyric-glass-panel{padding:36px 40px;border-radius:20px}
+  .lyric-line.current{font-size:37px}
+  .lyric-glass-panel{padding:38px 44px;border-radius:36px;max-width:88vw}
+  .lyric-lines-stack{gap:10px}
+  .lyric-line.far-before,.lyric-line.far-after{font-size:14px}
+  .lyric-line.near-before,.lyric-line.near-after{font-size:16px}
   .lyric-bg-image{width:80vmin;height:80vmin;max-width:500px;max-height:500px}
   .playlist-panel{right:10px;width:340px;max-height:75vh;border-radius:14px}
   .player-bar{min-width:auto;max-width:calc(100vw - 40px)}
 }
 @media(max-width:640px){
   .left-zone{position:relative;left:auto;top:auto;max-width:100%;padding:16px 16px 0;text-align:center}
-  .center-lyrics .lyric-line.current{font-size:30px}
-  .lyric-glass-panel{padding:24px 20px;border-radius:16px}
+  .lyric-line.current{font-size:28px}
+  .lyric-glass-panel{padding:28px 24px;border-radius:28px;max-width:92vw;min-width:auto}
+  .lyric-lines-stack{gap:8px}
+  .lyric-line.far-before,.lyric-line.far-after{font-size:12px}
+  .lyric-line.near-before,.lyric-line.near-after{font-size:14px}
   .lyric-bg-image{width:90vmin;height:90vmin;max-width:350px;max-height:350px;min-width:200px;min-height:200px}
   .playlist-panel{right:auto;top:auto;transform:none;width:calc(100% - 16px);margin:0 8px;max-height:45vh;position:relative}
   .player-bar{border-radius:18px;padding:8px 16px;min-width:auto;max-width:calc(100vw - 20px)}
@@ -378,7 +399,28 @@ function cleanLyricsText(t){if(!t)return'';var ls=t.split('\n'),cl=[];for(var i=
 function parseLyricsToLines(t){if(!t||!t.trim())return[];var txt=cleanLyricsText(t);if(!txt.trim())return[];var ls=txt.split('\n'),res=[];for(var i=0;i<ls.length;i++){var l=ls[i].trim();if(!l)continue;var m=l.match(/^\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]\s*(.*)/);if(m){var min=parseInt(m[1]),sec=parseInt(m[2]),ms=m[3]?parseInt(m[3].padEnd(3,'0')):0,time=min*60+sec+ms/1000,text=(m[4]||'').trim();if(text)res.push({time:time,text:text})}else{res.push({time:-1,text:l})}}res.sort(function(a,b){return a.time-b.time});return res}
 function findCurrentLyricIdx(){if(!lyricLinesArr.length)return 0;if(!lyricLinesArr.some(function(l){return l.time>=0}))return currentLyricIdx;var ct=(domAudio.currentTime||0)+lyricTimeOffset,idx=0;for(var i=0;i<lyricLinesArr.length;i++){if(lyricLinesArr[i].time>=0&&lyricLinesArr[i].time<=ct)idx=i;else if(lyricLinesArr[i].time>ct)break}return idx}
 
-function renderCenterLyrics(){domLyricLines.innerHTML='';if(!lyricLinesArr.length){domLyricLines.innerHTML='<span class="no-lyrics">暂无歌词</span>';return}var idx=currentLyricIdx;if(idx>=1){var ps=document.createElement('span');ps.className='lyric-line past';ps.textContent=lyricLinesArr[idx-1].text;domLyricLines.appendChild(ps)}var cur=lyricLinesArr[idx],ce=document.createElement('span');ce.className='lyric-line current';ce.textContent=cur.text;if(cur.time>=0){ce.dataset.lyricTime=cur.time;ce.dataset.lyricNextTime=(idx+1<lyricLinesArr.length&&lyricLinesArr[idx+1].time>cur.time)?lyricLinesArr[idx+1].time:cur.time+5;var fl=document.createElement('span');fl.className='lyric-fill';fl.textContent=cur.text;fl.style.width='0%';ce.appendChild(fl)}domLyricLines.appendChild(ce);if(idx+1<lyricLinesArr.length){var nx=document.createElement('span');nx.className='lyric-line next';nx.textContent=lyricLinesArr[idx+1].text;domLyricLines.appendChild(nx)}if(idx+2<lyricLinesArr.length){var ft=document.createElement('span');ft.className='lyric-line future';ft.textContent=lyricLinesArr[idx+2].text;domLyricLines.appendChild(ft)}updateLyricFillProgress()}
+function renderCenterLyrics(){domLyricLines.innerHTML='';if(!lyricLinesArr.length){domLyricLines.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';return}
+  var stack=document.createElement('div');stack.className='lyric-lines-stack';
+  var idx=currentLyricIdx,total=lyricLinesArr.length;
+  var offsets=[-2,-1,0,1,2];
+  for(var k=0;k<offsets.length;k++){
+    var o=offsets[k],li=idx+o;
+    if(li<0||li>=total)continue;
+    var span=document.createElement('span');
+    span.textContent=lyricLinesArr[li].text;
+    if(o===0){
+      span.className='lyric-line current';
+      var cur=lyricLinesArr[li];
+      if(cur.time>=0){span.dataset.lyricTime=cur.time;span.dataset.lyricNextTime=(li+1<total&&lyricLinesArr[li+1].time>cur.time)?lyricLinesArr[li+1].time:cur.time+5;var fl=document.createElement('span');fl.className='lyric-fill';fl.textContent=cur.text;fl.style.width='0%';span.appendChild(fl)}
+    }else if(o===-2){span.className='lyric-line far-before'}
+    else if(o===-1){span.className='lyric-line near-before'}
+    else if(o===1){span.className='lyric-line near-after'}
+    else if(o===2){span.className='lyric-line far-after'}
+    stack.appendChild(span);
+  }
+  domLyricLines.appendChild(stack);
+  updateLyricFillProgress()
+}
 function updateLyricFillProgress(){var ce=domLyricLines.querySelector('.lyric-line.current');if(!ce)return;var fl=ce.querySelector('.lyric-fill');if(!fl)return;var lt=parseFloat(ce.dataset.lyricTime||'-1');if(lt<0)return;var nt=parseFloat(ce.dataset.lyricNextTime||(lt+5)),dur=nt-lt,el=Math.max(0,((domAudio.currentTime||0)+lyricTimeOffset)-lt),pct=Math.min(100,el/dur*100);fl.style.width=pct+'%'}
 function syncLyricFromAudioTime(){if(!isPlaying||!lyricLinesArr.length)return;if(!lyricLinesArr.some(function(l){return l.time>=0}))return;var ni=findCurrentLyricIdx();if(ni!==currentLyricIdx){currentLyricIdx=ni;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst()}else{updateLyricFillProgress()}}
 function startPlainLyricTimer(){if(lyricAdvanceTimer)clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null;if(lyricLinesArr.length<=1)return;if(lyricLinesArr.some(function(l){return l.time>=0}))return;if(isPlaying){lyricAdvanceTimer=setInterval(function(){if(!isPlaying)return;if(currentLyricIdx<lyricLinesArr.length-1){currentLyricIdx++;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst()}else{clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null}},4000)}}
