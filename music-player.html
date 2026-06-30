@@ -64,19 +64,42 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .play-indicator .dot.paused{animation-play-state:paused;background:#555}
 @keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 10px #7c6ff7}50%{opacity:.3;box-shadow:0 0 3px #7c6ff7}}
 
-.player-bar{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:15;background:rgba(20,20,35,.6);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:12px 24px;display:flex;flex-direction:column;gap:8px;min-width:420px;max-width:640px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
-.player-bar .pb-row{display:flex;align-items:center;gap:12px}
-.player-bar .pb-time{font-size:11px;color:var(--text-secondary);letter-spacing:1px;font-variant-numeric:tabular-nums;min-width:36px}
-.player-bar input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.1);outline:none;cursor:pointer}
-.player-bar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 12px rgba(124,111,247,.6)}
-.pb-btn{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:transparent;color:#ccc;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center;transition:all var(--f)}
-.pb-btn:hover{background:rgba(255,255,255,.1);color:#fff}
-.pb-btn-play{width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;font-size:22px;display:inline-flex;align-items:center;justify-content:center;transition:all var(--f);box-shadow:0 4px 24px rgba(124,111,247,.35)}
-.pb-btn-play.playing{background:var(--accent);color:#fff}
-.pb-btn-play.playing:hover{background:var(--accent-hover);transform:scale(1.06);box-shadow:0 6px 30px rgba(124,111,247,.5)}
-.pb-btn-play.paused{background:rgba(255,255,255,.06);color:#aaa;border:1px solid rgba(255,255,255,.15)}
-.pb-btn-play.paused:hover{background:rgba(255,255,255,.12);color:#fff}
-.pb-btn-play:active{transform:scale(.95)}
+/* ===== 播放控制条 ===== */
+.player-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:15;background:rgba(14,14,30,.7);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:16px 28px;display:flex;flex-direction:column;gap:12px;min-width:460px;max-width:680px;box-shadow:0 -2px 30px rgba(0,0,0,.45),0 12px 48px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.03)}
+/* 进度条行 */
+.player-bar .pb-row{display:flex;align-items:center;gap:14px}
+.player-bar .pb-time{font-size:14px;font-weight:500;color:#eee;letter-spacing:.5px;font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
+.player-bar .pb-time-left{text-align:right}
+/* 进度条容器 — 暗轨 + 高亮覆盖 */
+.player-bar .pb-track-wrap{flex:1;position:relative;height:22px;display:flex;align-items:center;cursor:pointer}
+.player-bar .pb-track-bg{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+.player-bar .pb-track-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px;background:linear-gradient(90deg,#8B5CF6,#6366F1,#06B6D4);width:0%;transition:width .05s linear}
+.player-bar .pb-track-loading{position:absolute;left:0;top:0;height:100%;width:100%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.2) 40%,rgba(255,255,255,.2) 60%,transparent 100%);animation:pbShimmer 1.8s infinite;display:none}
+@keyframes pbShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.player-bar input[type=range]{-webkit-appearance:none;appearance:none;position:absolute;inset:0;width:100%;height:100%;background:transparent;outline:none;cursor:pointer;z-index:1;margin:0}
+.player-bar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;margin-top:-5px;border-radius:50%;background:#fff;border:3px solid #8B5CF6;box-shadow:0 0 2px rgba(0,0,0,.3),0 0 12px rgba(139,92,246,.5),0 0 24px rgba(139,92,246,.2);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease;position:relative;z-index:2}
+.player-bar input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);box-shadow:0 0 4px rgba(0,0,0,.3),0 0 18px rgba(139,92,246,.7),0 0 36px rgba(139,92,246,.3)}
+.player-bar input[type=range]::-webkit-slider-thumb:active{transform:scale(1.05)}
+/* Firefox */
+.player-bar input[type=range]::-moz-range-track{background:transparent;border:none}
+.player-bar input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #8B5CF6;box-shadow:0 0 12px rgba(139,92,246,.5);cursor:pointer}
+/* 按钮行 */
+.player-bar .pb-btn-row{display:flex;align-items:center;justify-content:center;gap:20px}
+/* 上一首/下一首 */
+.pb-btn-side{width:40px;height:40px;border-radius:50%;border:none;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;font-size:18px;display:inline-flex;align-items:center;justify-content:center;transition:all .2s ease}
+.pb-btn-side:hover{color:#fff;background:rgba(255,255,255,.08);transform:scale(1.08)}
+.pb-btn-side:active{transform:scale(.95)}
+/* 核心播放/暂停 — 大按钮，渐变背景 */
+.pb-btn-main{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;font-size:22px;display:inline-flex;align-items:center;justify-content:center;transition:all .25s ease;position:relative}
+.pb-btn-main::after{content:'';position:absolute;inset:-4px;border-radius:50%;background:rgba(139,92,246,.15);z-index:-1;transition:all .25s ease}
+.pb-btn-main.playing{background:linear-gradient(135deg,#8B5CF6,#6366F1);color:#fff;box-shadow:0 4px 24px rgba(139,92,246,.4),0 8px 48px rgba(99,102,241,.25)}
+.pb-btn-main.playing:hover{transform:scale(1.08);box-shadow:0 4px 30px rgba(139,92,246,.55),0 12px 56px rgba(99,102,241,.35)}
+.pb-btn-main.playing:hover::after{inset:-8px;background:rgba(139,92,246,.2)}
+.pb-btn-main.playing:active{transform:scale(.94)}
+.pb-btn-main.paused{background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.15);box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.pb-btn-main.paused:hover{background:rgba(139,92,246,.2);color:#fff;border-color:rgba(139,92,246,.4);transform:scale(1.08);box-shadow:0 4px 24px rgba(139,92,246,.25)}
+.pb-btn-main.paused:hover::after{inset:-8px;background:rgba(139,92,246,.08)}
+.pb-btn-main.paused:active{transform:scale(.94)}
 .playlist-panel{position:fixed;right:30px;top:50%;transform:translateY(-50%);width:440px;max-height:82vh;background:var(--panel-bg);backdrop-filter:blur(var(--blur-strength));-webkit-backdrop-filter:blur(var(--blur-strength));border:1px solid var(--panel-border);border-radius:var(--radius);z-index:10;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);overflow:hidden}
 .panel-header{padding:22px 24px 16px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
 .panel-title{font-size:20px;font-weight:700;letter-spacing:1.5px;color:#fff;display:flex;align-items:center;gap:10px}
@@ -184,7 +207,10 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
   .lyric-line.far-before,.lyric-line.far-after{font-size:13px}
   .lyric-bg-image{width:80vmin;height:80vmin;max-width:500px;max-height:500px}
   .playlist-panel{right:10px;width:340px;max-height:75vh;border-radius:14px}
-  .player-bar{min-width:auto;max-width:calc(100vw - 40px)}
+  .player-bar{min-width:auto;max-width:calc(100vw - 40px);padding:12px 20px;gap:10px}
+  .player-bar .pb-time{font-size:12px;min-width:36px}
+  .pb-btn-main{width:48px;height:48px;font-size:20px}
+  .pb-btn-side{width:36px;height:36px;font-size:16px}
 }
 @media(max-width:640px){
   .left-zone{position:relative;left:auto;top:auto;max-width:100%;padding:16px 16px 0;text-align:center}
@@ -194,7 +220,12 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
   .lyric-line.far-before,.lyric-line.far-after{font-size:10px}
   .lyric-bg-image{width:90vmin;height:90vmin;max-width:350px;max-height:350px;min-width:200px;min-height:200px}
   .playlist-panel{right:auto;top:auto;transform:none;width:calc(100% - 16px);margin:0 8px;max-height:45vh;position:relative}
-  .player-bar{border-radius:18px;padding:8px 16px;min-width:auto;max-width:calc(100vw - 20px)}
+  .player-bar{border-radius:20px;padding:10px 14px;min-width:auto;max-width:calc(100vw - 16px);gap:8px}
+  .player-bar .pb-time{font-size:11px;min-width:32px}
+  .player-bar .pb-row{gap:8px}
+  .pb-btn-main{width:44px;height:44px;font-size:18px}
+  .pb-btn-side{width:32px;height:32px;font-size:14px}
+  .player-bar .pb-btn-row{gap:12px}
 }
 </style>
 </head>
@@ -218,7 +249,24 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
   </div>
 </div>
 
-<div class="player-bar" id="playerBar"><div class="pb-row"><span class="pb-time" id="timeCurrent">0:00</span><input type="range" id="progressBar" min="0" max="100" value="0"><span class="pb-time" id="timeDuration">0:00</span></div><div class="pb-row" style="justify-content:center;gap:16px"><button class="pb-btn" id="btnPrev">⏮</button><button class="pb-btn-play paused" id="btnPlayPause">▶</button><button class="pb-btn" id="btnNext">⏭</button></div></div>
+<div class="player-bar" id="playerBar">
+  <div class="pb-row">
+    <span class="pb-time" id="timeCurrent">0:00</span>
+    <div class="pb-track-wrap">
+      <div class="pb-track-bg">
+        <div class="pb-track-fill" id="pbTrackFill"></div>
+        <div class="pb-track-loading" id="pbTrackLoading"></div>
+      </div>
+      <input type="range" id="progressBar" min="0" max="100" value="0">
+    </div>
+    <span class="pb-time pb-time-left" id="timeDuration">0:00</span>
+  </div>
+  <div class="pb-btn-row">
+    <button class="pb-btn-side" id="btnPrev" title="上一首">⏮</button>
+    <button class="pb-btn-main paused" id="btnPlayPause" title="播放 / 暂停">▶</button>
+    <button class="pb-btn-side" id="btnNext" title="下一首">⏭</button>
+  </div>
+</div>
 
 <div class="playlist-panel"><div class="panel-header"><div class="panel-title"><span class="icon-heart">♥</span> 我喜欢的音乐</div><div class="song-count" id="songCount">共 0 首</div></div><div class="netease-section"><div class="netease-toggle" id="neteaseToggle"><span class="arrow">▶</span> 🔴 网易云音乐 <span id="neteaseStatusHint" style="font-size:10px;color:rgba(255,255,255,.3)">（未连接）</span></div><div class="netease-body" id="neteaseBody" style="display:none"><div id="neteaseLoginForm"><div class="login-tabs"><button class="login-tab active" id="tabQr">📱 扫码登录</button><button class="login-tab" id="tabPhone">🔑 账号登录</button></div><div id="panelQr" class="qr-wrap"><canvas class="qr-canvas" id="qrCanvas" width="160" height="160"></canvas><div class="qr-status" id="qrStatus">点击展开以生成二维码…</div><button class="qr-refresh" id="qrRefresh" style="display:none">🔄 重新生成</button></div><div id="panelPhone" class="phone-login-form" style="display:none"><div class="phone-row"><span style="font-size:11px;color:var(--text-secondary)">+</span><input class="country-code" value="86" id="phoneCountry" placeholder="86" autocomplete="off"><input type="tel" id="phoneNumber" placeholder="手机号" autocomplete="off" style="flex:1"></div><div class="row"><input type="password" id="phonePassword" placeholder="密码" autocomplete="off" style="flex:1"></div><button class="btn-sm btn-sm-primary" id="btnPhoneLogin" style="width:100%">登录</button></div><details style="margin-top:8px;font-size:10px;color:rgba(255,255,255,.15)"><summary style="cursor:pointer">⚙ 手动粘贴 Cookie（高级）</summary><div class="row" style="margin-top:6px"><input type="password" id="neteaseCookieInput" placeholder="MUSIC_U cookie…" autocomplete="off"><button class="btn-sm btn-sm-outline" id="btnNeteaseConnect">连接</button></div></details></div><div id="neteaseUserPanel" style="display:none"><div class="netease-user-info"><img class="netease-avatar" id="neteaseAvatar" src="" alt=""><div><div class="netease-nickname" id="neteaseNickname">--</div><div class="netease-uid" id="neteaseUid"></div></div><button class="btn-sm btn-sm-outline" id="btnNeteaseLogout" style="margin-left:auto">退出</button></div><button class="btn-import-netease" id="btnImportPlaylist">📥 导入网易云歌单</button><button class="btn-import-netease" id="btnRefreshAllUrls" style="border-color:rgba(124,111,247,.3);color:#aaa4ff;background:rgba(124,111,247,.05);margin-top:6px">🔄 刷新全部播放链接</button></div></div></div><div class="toolbar"><button class="btn btn-outline" id="btnExport">📥 导出歌单</button><button class="btn btn-outline" id="btnImport">📤 导入歌单</button><input type="file" id="importFileInput" accept=".json" style="display:none"></div><div class="song-list-scroll"><ul class="song-list" id="songList"><li class="empty-hint">还没有歌曲，连接网易云导入吧 🎵</li></ul></div><div class="panel-footer"></div></div>
 
@@ -250,7 +298,8 @@ var domQrCanvas=$('#qrCanvas'),domQrStatus=$('#qrStatus'),domQrRefresh=$('#qrRef
 var domPhoneCountry=$('#phoneCountry'),domPhoneNumber=$('#phoneNumber'),domPhonePassword=$('#phonePassword'),domBtnPhoneLogin=$('#btnPhoneLogin');
 var domModalImport=$('#modalImportPlaylist'),domPlaylistList=$('#playlistList'),domBtnImportCancel=$('#btnImportCancel');
 var domBtnPrev=$('#btnPrev'),domBtnNext=$('#btnNext'),domBtnPlayPause=$('#btnPlayPause');
-var domProgressBar=$('#progressBar'),domTimeCurrent=$('#timeCurrent'),domTimeDuration=$('#timeDuration');
+var domProgressBar=$('#progressBar'),domPbTrackFill=$('#pbTrackFill'),domPbTrackLoading=$('#pbTrackLoading');
+var domTimeCurrent=$('#timeCurrent'),domTimeDuration=$('#timeDuration');
 var domToast=$('#toast'),domAudio=$('#audioPlayer');
 
 // State
@@ -550,7 +599,7 @@ function startPlainLyricTimer(){
 }
 
 function refreshLyricsDisplay(){
-  if(!currentPlayingId){domCenterLyrics.classList.remove('show');domBtnPlayPause.innerHTML='▶';domBtnPlayPause.className='pb-btn-play paused';stopLyricLoop();hideLyricBackground();return}
+  if(!currentPlayingId){domCenterLyrics.classList.remove('show');domBtnPlayPause.innerHTML='▶';domBtnPlayPause.className='pb-btn-main paused';stopLyricLoop();hideLyricBackground();return}
   var c=lyricsCache[currentPlayingId];
   if(c&&c.text){
     lyricBlocks=parseLrcToBlocks(c.text);
@@ -583,12 +632,12 @@ async function playSong(id){var song=playlist.find(function(s){return s.id===id}
   // 更新专辑封面背景
   if(song.albumArt){setLyricBackground(song.albumArt)}else{fetchAlbumArtForSong(song).then(function(art){if(currentPlayingId===id){if(art){setLyricBackground(art)}else{hideLyricBackground()}}})}
   if(song.url&&song.url!=='null'){buildAudioChain();var eu=getEffectiveUrl(song);if(eu){domAudio.src=eu;domAudio.load();try{await domAudio.play();onPlaybackStart(id);if(song.source==='netease'&&song.neteaseId)refreshSongUrl(song);return}catch(e){}}}if(song.source==='netease'&&song.neteaseId){var fr=await refreshSongUrl(song);if(fr){buildAudioChain();domAudio.src=getEffectiveUrl(song);domAudio.load();try{await domAudio.play();onPlaybackStart(id);return}catch(e){}}if(!song.url||song.url==='null'){showToast('此歌曲暂无播放链接','warn',4000);onPlaybackStart(id);isPlaying=false;updateUI();return}}if(!song.url||song.url==='null'){showToast('无播放链接','warn',3500);return}buildAudioChain();var eu2=getEffectiveUrl(song);if(!eu2){showToast('无效链接','warn');return}domAudio.src=eu2;domAudio.load();try{await domAudio.play();onPlaybackStart(id)}catch(err){showToast('播放失败：'+(err.name==='NotAllowedError'?'浏览器阻止自动播放':'链接失效'),'warn',4000);onPlaybackStart(id);isPlaying=false;updateUI()}}
-function onPlaybackStart(id){currentPlayingId=id;isPlaying=true;domTimeCurrent.textContent='0:00';domTimeDuration.textContent='0:00';domProgressBar.value=0;updateNowPlaying();updateUI();renderPlaylist();refreshLyricsDisplay();if(window._lyricBurst)window._lyricBurst()}
+function onPlaybackStart(id){currentPlayingId=id;isPlaying=true;domTimeCurrent.textContent='0:00';domTimeDuration.textContent='0:00';domProgressBar.value=0;domPbTrackFill.style.width='0%';updateNowPlaying();updateUI();renderPlaylist();refreshLyricsDisplay();if(window._lyricBurst)window._lyricBurst()}
 function togglePlayPause(){if(domAudio.paused){var p=domAudio.play();if(p!==undefined)p.then(function(){isPlaying=true;updateUI()}).catch(function(){})}else{domAudio.pause();isPlaying=false;updateUI()}startPlainLyricTimer()}
 function stopPlayback(){domAudio.pause();domAudio.src='';currentPlayingId=null;isPlaying=false;if(lyricAdvanceTimer){clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null}stopLyricsDisplay();updateNowPlaying();updateUI();renderPlaylist();domCenterLyrics.classList.remove('show');domLyricLines.innerHTML='';hideLyricBackground()}
 function updateNowPlaying(){if(currentPlayingId){var s=playlist.find(function(s){return s.id===currentPlayingId});if(s){domNowTitle.textContent=s.name;domNowArtist.textContent=s.artist;domPlayIndicator.style.display='flex'}}else{domNowTitle.innerHTML='<span class="now-playing-placeholder">未选择歌曲</span>';domNowArtist.textContent='';domPlayIndicator.style.display='none'}}
-function updateUI(){if(currentPlayingId){domPlayIndicator.style.display='flex';if(isPlaying){domIndicatorDot.classList.remove('paused');domIndicatorText.textContent='正在播放';domBtnPlayPause.innerHTML='⏸';domBtnPlayPause.className='pb-btn-play playing'}else{domIndicatorDot.classList.add('paused');domIndicatorText.textContent='已暂停';domBtnPlayPause.innerHTML='▶';domBtnPlayPause.className='pb-btn-play paused'}}else{domPlayIndicator.style.display='none';domBtnPlayPause.innerHTML='▶';domBtnPlayPause.className='pb-btn-play paused'}}
-function updateProgress(){var dur=domAudio.duration||0,cur=domAudio.currentTime||0;if(dur>0){domProgressBar.max=100;domProgressBar.value=cur/dur*100||0;domTimeCurrent.textContent=fmtTime(cur);domTimeDuration.textContent=fmtTime(dur)}}
+function updateUI(){if(currentPlayingId){domPlayIndicator.style.display='flex';if(isPlaying){domIndicatorDot.classList.remove('paused');domIndicatorText.textContent='正在播放';domBtnPlayPause.innerHTML='⏸';domBtnPlayPause.className='pb-btn-main playing'}else{domIndicatorDot.classList.add('paused');domIndicatorText.textContent='已暂停';domBtnPlayPause.innerHTML='▶';domBtnPlayPause.className='pb-btn-main paused'}}else{domPlayIndicator.style.display='none';domBtnPlayPause.innerHTML='▶';domBtnPlayPause.className='pb-btn-main paused'}}
+function updateProgress(){var dur=domAudio.duration||0,cur=domAudio.currentTime||0;if(dur>0){domProgressBar.max=100;var pct=cur/dur*100;domProgressBar.value=pct;domPbTrackFill.style.width=pct+'%';domTimeCurrent.textContent=fmtTime(cur);domTimeDuration.textContent=fmtTime(dur)}else{domPbTrackFill.style.width='0%'}}
 function fmtTime(s){var m=Math.floor(s/60);return m+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60)}
 
 // Audio events
