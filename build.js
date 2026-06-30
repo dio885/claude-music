@@ -65,15 +65,20 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 /* 紧邻行 */
 .lyric-line.prev,.lyric-line.next{font-size:24px;color:rgba(255,255,255,.32);font-weight:450}
 
-/* 当前行 — 高亮 + 呼吸动画 + 文字颜色渐染 */
-.lyric-line.current{font-size:52px;font-weight:700;letter-spacing:.07em;display:inline-block;animation:lyricBreathe 3.2s ease-in-out infinite;--prog:0%}
-/* 未填充部分: 白色 */
-.lyric-line.current .lyric-base{color:#fff;text-shadow:0 0 20px rgba(255,255,255,.45),0 0 60px rgba(180,160,255,.3),0 0 100px rgba(124,111,247,.18),0 2px 6px rgba(0,0,0,.25)}
-/* 填充部分: 青色, 宽度由 --prog 控制 */
-.lyric-line.current .lyric-colored{position:absolute;top:0;left:0;overflow:hidden;width:var(--prog);height:100%;white-space:nowrap;color:#00f0ff;text-shadow:0 0 14px rgba(0,240,255,.9),0 0 40px rgba(0,200,255,.7),0 0 80px rgba(100,180,255,.45);pointer-events:none}
+/* 当前行 — 字符心跳爆发 */
+.lyric-line.current{font-size:52px;font-weight:700;letter-spacing:.12em;display:inline-block;animation:lyricBreathe 3.2s ease-in-out infinite}
 @keyframes lyricBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.02)}}
 
-/* 非当前行底色 */
+/* 逐字符 span */
+.lyric-char{display:inline-block;transition:transform .1s ease-out,color .1s ease-out,text-shadow .1s ease-out;will-change:transform;position:relative}
+/* 未唱到的字: 暗白 */
+.lyric-char.pending{color:rgba(255,255,255,.22);text-shadow:none}
+/* 已唱过的字: 柔和青色 */
+.lyric-char.sung{color:#00e0f0;text-shadow:0 0 8px rgba(0,224,240,.3),0 0 20px rgba(0,180,200,.15)}
+/* 当前唱到的字 — 爆发！ */
+.lyric-char.active{color:#fff;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 18px rgba(255,255,255,.5),0 0 36px rgba(0,240,255,.7),0 0 75px rgba(0,200,255,.45);transform:scale(1.55);z-index:1}
+
+/* 非当前行 */
 .lyric-line:not(.current){color:rgba(255,255,255,.1)}
 
 /* 无歌词 */

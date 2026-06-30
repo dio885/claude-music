@@ -42,15 +42,20 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 /* 紧邻行 */
 .lyric-line.prev,.lyric-line.next{font-size:24px;color:rgba(255,255,255,.32);font-weight:450}
 
-/* 当前行 — 高亮 + 呼吸动画 + 文字颜色渐染 */
-.lyric-line.current{font-size:52px;font-weight:700;letter-spacing:.07em;display:inline-block;animation:lyricBreathe 3.2s ease-in-out infinite;--prog:0%}
-/* 未填充部分: 白色 */
-.lyric-line.current .lyric-base{color:#fff;text-shadow:0 0 20px rgba(255,255,255,.45),0 0 60px rgba(180,160,255,.3),0 0 100px rgba(124,111,247,.18),0 2px 6px rgba(0,0,0,.25)}
-/* 填充部分: 青色, 宽度由 --prog 控制 */
-.lyric-line.current .lyric-colored{position:absolute;top:0;left:0;overflow:hidden;width:var(--prog);height:100%;white-space:nowrap;color:#00f0ff;text-shadow:0 0 14px rgba(0,240,255,.9),0 0 40px rgba(0,200,255,.7),0 0 80px rgba(100,180,255,.45);pointer-events:none}
+/* 当前行 — 字符心跳爆发 */
+.lyric-line.current{font-size:52px;font-weight:700;letter-spacing:.12em;display:inline-block;animation:lyricBreathe 3.2s ease-in-out infinite}
 @keyframes lyricBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.02)}}
 
-/* 非当前行底色 */
+/* 逐字符 span */
+.lyric-char{display:inline-block;transition:transform .1s ease-out,color .1s ease-out,text-shadow .1s ease-out;will-change:transform;position:relative}
+/* 未唱到的字: 暗白 */
+.lyric-char.pending{color:rgba(255,255,255,.22);text-shadow:none}
+/* 已唱过的字: 柔和青色 */
+.lyric-char.sung{color:#00e0f0;text-shadow:0 0 8px rgba(0,224,240,.3),0 0 20px rgba(0,180,200,.15)}
+/* 当前唱到的字 — 爆发！ */
+.lyric-char.active{color:#fff;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 18px rgba(255,255,255,.5),0 0 36px rgba(0,240,255,.7),0 0 75px rgba(0,200,255,.45);transform:scale(1.55);z-index:1}
+
+/* 非当前行 */
 .lyric-line:not(.current){color:rgba(255,255,255,.1)}
 
 /* 无歌词 */
@@ -398,44 +403,92 @@ for(var j=bp.length-1;j>=0;j--){var b=bp[j];b.x+=b.vx;b.y+=b.vy;b.vx*=.96;b.vy*=
 requestAnimationFrame(an)})()
 })();
 
-// Lyrics engine
+// Lyrics engine — 逐字心跳爆发
+var charHitState=[];          // 'pending'|'sung' per char in current line
+var charSpans=[];            // live DOM spans for current line
+var lastHitCharIdx=-1;
+var charBeatTimers={};
+
 function cleanLyricsText(t){if(!t)return'';var ls=t.split('\n'),cl=[];for(var i=0;i<ls.length;i++){var l=ls[i].trim();if(!l){cl.push('');continue}if(/^\{\s*"t"\s*:\s*\d+/.test(l))continue;if(/^\[\d{2}:\d{2}[^\]]*\][\s]*$/.test(l))continue;cl.push(l)}return cl.join('\n').replace(/\n{3,}/g,'\n\n')}
 function parseLyricsToLines(t){if(!t||!t.trim())return[];var txt=cleanLyricsText(t);if(!txt.trim())return[];var ls=txt.split('\n'),res=[];for(var i=0;i<ls.length;i++){var l=ls[i].trim();if(!l)continue;var m=l.match(/^\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]\s*(.*)/);if(m){var min=parseInt(m[1]),sec=parseInt(m[2]),ms=m[3]?parseInt(m[3].padEnd(3,'0')):0,time=min*60+sec+ms/1000,text=(m[4]||'').trim();if(text)res.push({time:time,text:text})}else{res.push({time:-1,text:l})}}res.sort(function(a,b){return a.time-b.time});return res}
 function findCurrentLyricIdx(){if(!lyricLinesArr.length)return 0;if(!lyricLinesArr.some(function(l){return l.time>=0}))return currentLyricIdx;var ct=(domAudio.currentTime||0)+lyricTimeOffset,idx=0;for(var i=0;i<lyricLinesArr.length;i++){if(lyricLinesArr[i].time>=0&&lyricLinesArr[i].time<=ct)idx=i;else if(lyricLinesArr[i].time>ct)break}return idx}
 
-function renderCenterLyrics(){domLyricLines.innerHTML='';if(!lyricLinesArr.length){domLyricLines.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';return}
+function interpolateCharTimes(line,nextLine){
+  var start=line.time,total=line.text.length;
+  if(total===0)return[];
+  var end;if(nextLine&&nextLine.time>start)end=nextLine.time;else end=start+4;
+  var dur=end-start,times=[];
+  for(var j=0;j<total;j++){times.push(start+(j/total)*dur)}
+  return times
+}
+
+function renderCenterLyrics(){domLyricLines.innerHTML='';charSpans=[];charHitState=[];lastHitCharIdx=-1;charBeatTimers={};
+  if(!lyricLinesArr.length){domLyricLines.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';return}
   var stack=document.createElement('div');stack.className='lyric-lines-stack';
   var idx=currentLyricIdx,total=lyricLinesArr.length;
   var offsets=[-2,-1,0,1,2];
   for(var k=0;k<offsets.length;k++){
     var o=offsets[k],li=idx+o;
     if(li<0||li>=total)continue;
-    var span=document.createElement('span');
-    span.className='lyric-line';
+    var line=document.createElement('span');line.className='lyric-line';
+    var cur=lyricLinesArr[li];
     if(o===0){
-      span.classList.add('current');
-      var cur=lyricLinesArr[li];
-      if(cur.time>=0){span.dataset.lyricTime=cur.time;span.dataset.lyricNextTime=(li+1<total&&lyricLinesArr[li+1].time>cur.time)?lyricLinesArr[li+1].time:cur.time+5}
-      // 底色层 (白色)
-      var base=document.createElement('span');base.className='lyric-base';base.textContent=cur.text;
-      span.appendChild(base);
-      // 染色层 (青色, 宽度由 --prog 控制)
-      var color=document.createElement('span');color.className='lyric-colored';color.textContent=cur.text;
-      span.appendChild(color);
+      line.classList.add('current');
+      if(cur.time>=0){line.dataset.lyricTime=cur.time;var next=(li+1<total&&lyricLinesArr[li+1].time>cur.time)?lyricLinesArr[li+1]:null;line.dataset.lyricNextTime=next?next.time:cur.time+5}
+      var chars=cur.text;var nextLine=(li+1<total)?lyricLinesArr[li+1]:null;
+      var charTimes=interpolateCharTimes(cur,nextLine);
+      if(cur.time>=0&&charTimes.length===chars.length){
+        for(var j=0;j<chars.length;j++){
+          var c=document.createElement('span');c.className='lyric-char';c.textContent=chars[j];
+          c.dataset.charTime=charTimes[j];c.dataset.charIdx=j;
+          charHitState.push('pending');charSpans.push(c);c.classList.add('pending');line.appendChild(c)
+        }
+      }else{
+        for(var j=0;j<chars.length;j++){
+          var c=document.createElement('span');c.className='lyric-char pending';c.textContent=chars[j];
+          charHitState.push('pending');charSpans.push(c);line.appendChild(c)
+        }
+      }
+      updateCharBeat('init');
     }else{
-      span.textContent=lyricLinesArr[li].text;
-      if(o===-2)span.classList.add('far-before');
-      else if(o===-1)span.classList.add('near-before');
-      else if(o===1)span.classList.add('near-after');
-      else if(o===2)span.classList.add('far-after');
+      line.textContent=cur.text;
+      if(o===-2)line.classList.add('far-before');
+      else if(o===-1)line.classList.add('near-before');
+      else if(o===1)line.classList.add('near-after');
+      else if(o===2)line.classList.add('far-after')
     }
-    stack.appendChild(span);
+    stack.appendChild(line)
   }
-  domLyricLines.appendChild(stack);
-  updateLyricFillProgress()
+  domLyricLines.appendChild(stack)
 }
-function updateLyricFillProgress(){var ce=domLyricLines.querySelector('.lyric-line.current');if(!ce)return;var lt=parseFloat(ce.dataset.lyricTime||'-1');if(lt<0)return;var nt=parseFloat(ce.dataset.lyricNextTime||(lt+5)),dur=nt-lt,el=Math.max(0,((domAudio.currentTime||0)+lyricTimeOffset)-lt),pct=Math.min(100,el/dur*100);ce.style.setProperty('--prog',pct+'%')}
-function syncLyricFromAudioTime(){if(!isPlaying||!lyricLinesArr.length)return;if(!lyricLinesArr.some(function(l){return l.time>=0}))return;var ni=findCurrentLyricIdx();if(ni!==currentLyricIdx){currentLyricIdx=ni;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst()}else{updateLyricFillProgress()}}
+
+function updateCharBeat(reason){
+  if(!charSpans.length||!charHitState.length)return;
+  var ct=(domAudio.currentTime||0)+lyricTimeOffset,hit=-1;
+  for(var j=0;j<charSpans.length;j++){
+    var t=parseFloat(charSpans[j].dataset.charTime||'-1');if(t<0)continue;
+    if(t<=ct)hit=j;else break
+  }
+  if(reason==='init'){
+    for(var j=0;j<=Math.max(hit,0);j++){charHitState[j]='sung';charSpans[j].className='lyric-char sung'}
+    return
+  }
+  if(hit<0)return;
+  for(var j=0;j<=hit;j++){
+    if(charHitState[j]==='pending'){charHitState[j]='sung';charSpans[j].className='lyric-char sung'}
+  }
+  if(charHitState[hit]==='sung'&&hit!==lastHitCharIdx){
+    lastHitCharIdx=hit;
+    charSpans[hit].classList.add('active');
+    var idx=hit;
+    if(charBeatTimers[idx])clearTimeout(charBeatTimers[idx]);
+    charBeatTimers[idx]=setTimeout(function(){
+      charSpans[idx].classList.remove('active');charBeatTimers[idx]=null
+    },100)
+  }
+}
+
+function syncLyricFromAudioTime(){if(!isPlaying||!lyricLinesArr.length)return;if(!lyricLinesArr.some(function(l){return l.time>=0}))return;var ni=findCurrentLyricIdx();if(ni!==currentLyricIdx){currentLyricIdx=ni;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst()}else{updateCharBeat()}}
 function startPlainLyricTimer(){if(lyricAdvanceTimer)clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null;if(lyricLinesArr.length<=1)return;if(lyricLinesArr.some(function(l){return l.time>=0}))return;if(isPlaying){lyricAdvanceTimer=setInterval(function(){if(!isPlaying)return;if(currentLyricIdx<lyricLinesArr.length-1){currentLyricIdx++;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst()}else{clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null}},4000)}}
 
 function refreshLyricsDisplay(){if(!currentPlayingId){domCenterLyrics.classList.remove('show');domBtnPlayPause.innerHTML='▶';domBtnPlayPause.className='pb-btn-play paused';hideLyricBackground();return}var c=lyricsCache[currentPlayingId];if(c&&c.text){lyricLinesArr=parseLyricsToLines(c.text);if(lyricLinesArr.length>0&&!lyricLinesArr.some(function(l){return l.time>=0})&&currentPlayingId){var cs=playlist.find(function(s){return s.id===currentPlayingId});if(cs&&cs.source==='netease'&&cs.neteaseId){delete lyricsCache[currentPlayingId];saveLyricsCache();fetchNeteaseLyrics(cs.neteaseId)}}currentLyricIdx=findCurrentLyricIdx();if(lyricLinesArr.length>0&&lyricLinesArr[0].time>5&&domAudio.currentTime>1&&domAudio.currentTime<lyricLinesArr[0].time){lyricTimeOffset=domAudio.currentTime-lyricLinesArr[0].time+.3;currentLyricIdx=findCurrentLyricIdx()}renderCenterLyrics();startPlainLyricTimer()}else{lyricLinesArr=[];currentLyricIdx=0;domLyricLines.innerHTML='<span class="no-lyrics">暂无歌词，播放后自动获取</span>'}domCenterLyrics.classList.add('show')}
