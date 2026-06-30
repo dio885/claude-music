@@ -50,11 +50,12 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .lyric-glass-panel{position:relative;display:inline-block;padding:28px 60px;border-radius:48px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 32px 96px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.35);transition:opacity .5s;animation:panelEnter .55s cubic-bezier(.23,1,.32,1) both;max-width:90vw;min-width:280px;text-align:center}
 @keyframes panelEnter{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-/* 滚动视口 — 固定高度，由 JS 控制内部滚动，flex 居中无歌词文本 */
-.lyric-viewport{position:relative;width:100%;height:300px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+/* 滚动视口 — 固定高度裁剪，内容在内部由 JS translateY 滚动 */
+.lyric-viewport{position:relative;width:auto;height:300px;overflow:hidden}
 
-/* 歌词行栈 — position:absolute 在视口内，由 JS translateY 瞬间定位 */
-.lyric-lines-stack{position:absolute;left:0;right:0;top:0;will-change:transform;transition:none!important;animation:none!important}
+/* 歌词行栈 — normal flow，宽度 = 最宽行，玻璃面板自适应 */
+.lyric-lines-stack{position:relative;will-change:transform;transition:none!important;animation:none!important}
+
 
 /* 通用歌词行 — 固定高度确保物理计算精确 */
 .lyric-line{font-family:'Inter','SF Pro Display','Source Han Sans SC','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;font-weight:400;letter-spacing:.05em;display:flex;align-items:center;justify-content:center;height:80px;white-space:nowrap;transition:none!important;padding:0}
@@ -82,7 +83,7 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .lyric-line:not(.current){color:rgba(255,255,255,.1)}
 
 /* 无歌词 */
-.lyric-glass-panel .no-lyrics{display:block;padding:40px 0;font-size:17px;color:rgba(255,255,255,.15);letter-spacing:.1em;font-family:'Inter','PingFang SC','Microsoft YaHei',sans-serif;font-weight:300}
+.lyric-viewport .no-lyrics{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;color:rgba(255,255,255,.15);letter-spacing:.1em;font-family:'Inter','PingFang SC','Microsoft YaHei',sans-serif;font-weight:300}
 
 .left-zone{position:fixed;left:50px;top:40px;z-index:10;max-width:380px}
 .now-playing-area{pointer-events:none}
