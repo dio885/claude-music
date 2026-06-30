@@ -33,6 +33,33 @@ const HTML = `<!DOCTYPE html>
 body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;color:var(--text-primary);width:100vw;height:100vh;overflow:hidden;user-select:none;-webkit-user-select:none;position:relative}
 #bgCanvas,#lyricParticleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
 #lyricParticleCanvas{z-index:5}
+
+/* ===== 歌词背景层 —— 专辑封面 ===== */
+.lyric-bg-wrapper{position:fixed;inset:0;z-index:2;pointer-events:none;display:none;align-items:center;justify-content:center}
+.lyric-bg-wrapper.show{display:flex}
+.lyric-bg-image{position:absolute;width:70vmin;height:70vmin;max-width:750px;max-height:750px;min-width:300px;min-height:300px;object-fit:cover;border-radius:28px;top:50%;left:50%;transform:translate(-50%,-50%);transition:opacity 1s cubic-bezier(.4,0,.2,1),transform 1.2s cubic-bezier(.4,0,.2,1);box-shadow:0 0 120px rgba(0,0,0,.5)}
+.lyric-bg-image.fade-out{opacity:0;transform:translate(-50%,-50%) scale(1.08)}
+.lyric-bg-image.fade-in{opacity:.75;transform:translate(-50%,-50%) scale(1)}
+.lyric-bg-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(6,6,13,.35) 0%,rgba(6,6,13,.75) 70%,rgba(6,6,13,.92) 100%)}
+
+/* ===== 中心歌词区 ===== */
+.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;text-align:center;pointer-events:none;max-width:85vw;display:none}
+.center-lyrics.show{display:block}
+
+/* 毛玻璃面板 */
+.lyric-glass-panel{position:relative;padding:50px 70px;border-radius:26px;background:rgba(18,18,35,.38);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.2);transition:all .8s cubic-bezier(.23,1,.32,1);animation:glassIn .6s cubic-bezier(.23,1,.32,1) both}
+@keyframes glassIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+
+/* 歌词行 */
+.center-lyrics .lyric-line{transition:all .7s cubic-bezier(.23,1,.32,1);line-height:1.35;display:block}
+.center-lyrics .lyric-line.current{font-size:58px;font-weight:800;letter-spacing:4px;margin-bottom:16px;display:inline-block;position:relative;color:#fff;text-shadow:0 0 30px rgba(255,255,255,.45),0 0 80px rgba(180,160,255,.35),0 0 140px rgba(124,111,247,.25)}
+.center-lyrics .lyric-line.current>.lyric-fill{position:absolute;top:0;left:0;width:0;height:100%;white-space:nowrap;overflow:hidden;color:#00f3ff;text-shadow:0 0 20px rgba(0,243,255,.9),0 0 60px rgba(0,200,255,.7),0 0 120px rgba(100,180,255,.5),0 0 200px rgba(0,243,255,.3);pointer-events:none;animation:lyricGlow .8s infinite alternate}
+@keyframes lyricGlow{from{filter:brightness(1)}to{filter:brightness(1.3)}}
+.center-lyrics .lyric-line.next{font-size:22px;color:rgba(255,255,255,.35);margin-bottom:10px;letter-spacing:2px}
+.center-lyrics .lyric-line.future{font-size:16px;color:rgba(255,255,255,.15);margin-bottom:8px;letter-spacing:2px}
+.center-lyrics .lyric-line.past{font-size:18px;color:rgba(255,255,255,.1);opacity:0;margin-bottom:6px}
+.center-lyrics .no-lyrics{font-size:18px;color:rgba(255,255,255,.14);letter-spacing:3px}
+
 .left-zone{position:fixed;left:50px;top:40px;z-index:10;max-width:380px}
 .now-playing-area{pointer-events:none}
 .now-playing-label{font-size:11px;text-transform:uppercase;letter-spacing:5px;color:var(--text-secondary);margin-bottom:10px;font-weight:500}
@@ -43,15 +70,7 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .play-indicator .dot{width:7px;height:7px;border-radius:50%;background:#7c6ff7;animation:pulse-dot 1.2s infinite}
 .play-indicator .dot.paused{animation-play-state:paused;background:#555}
 @keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 10px #7c6ff7}50%{opacity:.3;box-shadow:0 0 3px #7c6ff7}}
-.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;text-align:center;pointer-events:none;max-width:80vw}
-.center-lyrics .lyric-line{transition:all .8s cubic-bezier(.23,1,.32,1);line-height:1.3;display:block}
-.center-lyrics .lyric-line.current{font-size:64px;font-weight:800;letter-spacing:4px;margin-bottom:18px;display:inline-block;position:relative;color:#fff;text-shadow:0 0 30px rgba(255,255,255,.4),0 0 80px rgba(180,160,255,.3),0 0 140px rgba(124,111,247,.2)}
-.center-lyrics .lyric-line.current>.lyric-fill{position:absolute;top:0;left:0;width:0;height:100%;white-space:nowrap;overflow:hidden;color:#00f3ff;text-shadow:0 0 20px rgba(0,243,255,.9),0 0 60px rgba(0,200,255,.7),0 0 120px rgba(100,180,255,.5),0 0 200px rgba(0,243,255,.3);pointer-events:none;animation:lyricGlow .8s infinite alternate}
-@keyframes lyricGlow{from{filter:brightness(1)}to{filter:brightness(1.3)}}
-.center-lyrics .lyric-line.next{font-size:22px;color:rgba(255,255,255,.3);margin-bottom:10px;letter-spacing:2px}
-.center-lyrics .lyric-line.future{font-size:16px;color:rgba(255,255,255,.12);margin-bottom:8px;letter-spacing:2px}
-.center-lyrics .lyric-line.past{font-size:18px;color:rgba(255,255,255,.08);opacity:0;margin-bottom:6px}
-.center-lyrics .no-lyrics{font-size:18px;color:rgba(255,255,255,.12);letter-spacing:3px}
+
 .player-bar{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:15;background:rgba(20,20,35,.6);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:12px 24px;display:flex;flex-direction:column;gap:8px;min-width:420px;max-width:640px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .player-bar .pb-row{display:flex;align-items:center;gap:12px}
 .player-bar .pb-time{font-size:11px;color:var(--text-secondary);letter-spacing:1px;font-variant-numeric:tabular-nums;min-width:36px}
@@ -163,18 +182,51 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.warn{border-color:rgba(255,180,80,.4);color:#fc8}
 .toast.error{border-color:rgba(224,85,106,.4);color:#f89}
-@media(max-width:900px){.left-zone{left:20px;top:20px;max-width:220px}.now-playing-title{font-size:20px}.center-lyrics .lyric-line.current{font-size:40px}.playlist-panel{right:10px;width:340px;max-height:75vh;border-radius:14px}.player-bar{min-width:auto;max-width:calc(100vw - 40px)}}
-@media(max-width:640px){.left-zone{position:relative;left:auto;top:auto;max-width:100%;padding:16px 16px 0;text-align:center}.center-lyrics .lyric-line.current{font-size:30px}.playlist-panel{right:auto;top:auto;transform:none;width:calc(100% - 16px);margin:0 8px;max-height:45vh;position:relative}.player-bar{border-radius:18px;padding:8px 16px;min-width:auto;max-width:calc(100vw - 20px)}}
+@media(max-width:900px){
+  .left-zone{left:20px;top:20px;max-width:220px}
+  .now-playing-title{font-size:20px}
+  .center-lyrics .lyric-line.current{font-size:40px}
+  .lyric-glass-panel{padding:36px 40px;border-radius:20px}
+  .lyric-bg-image{width:80vmin;height:80vmin;max-width:500px;max-height:500px}
+  .playlist-panel{right:10px;width:340px;max-height:75vh;border-radius:14px}
+  .player-bar{min-width:auto;max-width:calc(100vw - 40px)}
+}
+@media(max-width:640px){
+  .left-zone{position:relative;left:auto;top:auto;max-width:100%;padding:16px 16px 0;text-align:center}
+  .center-lyrics .lyric-line.current{font-size:30px}
+  .lyric-glass-panel{padding:24px 20px;border-radius:16px}
+  .lyric-bg-image{width:90vmin;height:90vmin;max-width:350px;max-height:350px;min-width:200px;min-height:200px}
+  .playlist-panel{right:auto;top:auto;transform:none;width:calc(100% - 16px);margin:0 8px;max-height:45vh;position:relative}
+  .player-bar{border-radius:18px;padding:8px 16px;min-width:auto;max-width:calc(100vw - 20px)}
+}
 </style>
 </head>
 <body>
 <canvas id="bgCanvas"></canvas>
+
+<!-- ===== 专辑封面背景层 ===== -->
+<div class="lyric-bg-wrapper" id="lyricBgWrapper">
+  <img class="lyric-bg-image fade-out" id="lyricBgImgA" src="" alt="" crossorigin="anonymous">
+  <img class="lyric-bg-image fade-out" id="lyricBgImgB" src="" alt="" crossorigin="anonymous">
+  <div class="lyric-bg-overlay"></div>
+</div>
+
 <canvas id="lyricParticleCanvas"></canvas>
+
 <div class="left-zone"><div class="now-playing-area"><div class="now-playing-label">♪ 正在播放</div><div class="now-playing-title" id="nowTitle"><span class="now-playing-placeholder">未选择歌曲</span></div><div class="now-playing-artist" id="nowArtist"></div><div class="play-indicator" id="playIndicator" style="display:none"><span class="dot paused" id="indicatorDot"></span><span style="font-size:10px;color:#888" id="indicatorText">已暂停</span></div></div></div>
-<div class="center-lyrics" id="centerLyrics" style="display:none"><div id="lyricLinesContainer"></div></div>
+
+<div class="center-lyrics" id="centerLyrics" style="display:none">
+  <div class="lyric-glass-panel">
+    <div id="lyricLinesContainer"></div>
+  </div>
+</div>
+
 <div class="player-bar" id="playerBar"><div class="pb-row"><span class="pb-time" id="timeCurrent">0:00</span><input type="range" id="progressBar" min="0" max="100" value="0"><span class="pb-time" id="timeDuration">0:00</span></div><div class="pb-row" style="justify-content:center;gap:16px"><button class="pb-btn" id="btnPrev">⏮</button><button class="pb-btn-play paused" id="btnPlayPause">▶</button><button class="pb-btn" id="btnNext">⏭</button></div></div>
+
 <div class="playlist-panel"><div class="panel-header"><div class="panel-title"><span class="icon-heart">♥</span> 我喜欢的音乐</div><div class="song-count" id="songCount">共 0 首</div></div><div class="netease-section"><div class="netease-toggle" id="neteaseToggle"><span class="arrow">▶</span> 🔴 网易云音乐 <span id="neteaseStatusHint" style="font-size:10px;color:rgba(255,255,255,.3)">（未连接）</span></div><div class="netease-body" id="neteaseBody" style="display:none"><div id="neteaseLoginForm"><div class="login-tabs"><button class="login-tab active" id="tabQr">📱 扫码登录</button><button class="login-tab" id="tabPhone">🔑 账号登录</button></div><div id="panelQr" class="qr-wrap"><canvas class="qr-canvas" id="qrCanvas" width="160" height="160"></canvas><div class="qr-status" id="qrStatus">点击展开以生成二维码…</div><button class="qr-refresh" id="qrRefresh" style="display:none">🔄 重新生成</button></div><div id="panelPhone" class="phone-login-form" style="display:none"><div class="phone-row"><span style="font-size:11px;color:var(--text-secondary)">+</span><input class="country-code" value="86" id="phoneCountry" placeholder="86" autocomplete="off"><input type="tel" id="phoneNumber" placeholder="手机号" autocomplete="off" style="flex:1"></div><div class="row"><input type="password" id="phonePassword" placeholder="密码" autocomplete="off" style="flex:1"></div><button class="btn-sm btn-sm-primary" id="btnPhoneLogin" style="width:100%">登录</button></div><details style="margin-top:8px;font-size:10px;color:rgba(255,255,255,.15)"><summary style="cursor:pointer">⚙ 手动粘贴 Cookie（高级）</summary><div class="row" style="margin-top:6px"><input type="password" id="neteaseCookieInput" placeholder="MUSIC_U cookie…" autocomplete="off"><button class="btn-sm btn-sm-outline" id="btnNeteaseConnect">连接</button></div></details></div><div id="neteaseUserPanel" style="display:none"><div class="netease-user-info"><img class="netease-avatar" id="neteaseAvatar" src="" alt=""><div><div class="netease-nickname" id="neteaseNickname">--</div><div class="netease-uid" id="neteaseUid"></div></div><button class="btn-sm btn-sm-outline" id="btnNeteaseLogout" style="margin-left:auto">退出</button></div><button class="btn-import-netease" id="btnImportPlaylist">📥 导入网易云歌单</button><button class="btn-import-netease" id="btnRefreshAllUrls" style="border-color:rgba(124,111,247,.3);color:#aaa4ff;background:rgba(124,111,247,.05);margin-top:6px">🔄 刷新全部播放链接</button></div></div></div><div class="toolbar"><button class="btn btn-outline" id="btnExport">📥 导出歌单</button><button class="btn btn-outline" id="btnImport">📤 导入歌单</button><input type="file" id="importFileInput" accept=".json" style="display:none"></div><div class="song-list-scroll"><ul class="song-list" id="songList"><li class="empty-hint">还没有歌曲，连接网易云导入吧 🎵</li></ul></div><div class="panel-footer"></div></div>
+
 <div class="modal-overlay" id="modalImportPlaylist"><div class="modal-box wide"><div class="modal-title">🎧 选择歌单导入</div><div class="modal-body-scroll" id="playlistList"><div style="text-align:center;padding:30px;color:rgba(255,255,255,.3)">加载中…</div></div><div class="modal-actions"><button class="btn btn-outline" id="btnImportCancel">关闭</button></div></div></div>
+
 <div class="toast" id="toast"></div>
 <audio id="audioPlayer" preload="auto"></audio>
 `;
