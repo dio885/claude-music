@@ -246,7 +246,7 @@ function parseLrcToBlocks(raw){
 // 目标: 把第 idx 行放在视口正中央
 function computeTranslateY(idx,totalLines){
   var vh=domLyricViewport.clientHeight;
-  var lh=LYRIC_LH||56; // 默认 56px
+  var lh=LYRIC_LH||80;  // 80px = CSS .lyric-line height
   // 居中偏移
   return -(idx*lh)+(vh/2-lh/2)
 }
@@ -272,8 +272,8 @@ function buildLyricDOM(){
     line.className='lyric-line far-after';line.textContent=blk.text;line.dataset.trackIdx=i;
     trackLines.push(line);domLyricLines.appendChild(line)
   }
-  // 测量行高
-  if(trackLines.length>0){LYRIC_LH=trackLines[0].getBoundingClientRect().height;if(LYRIC_LH<30)LYRIC_LH=56}
+  // 测量行高（所有行固定高度 80px）
+  LYRIC_LH=80;if(trackLines.length>0){var mh=trackLines[0].getBoundingClientRect().height;if(mh>30)LYRIC_LH=mh}
 }
 
 // ── 更新当前行的逐词 DOM ──
