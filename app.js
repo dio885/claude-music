@@ -6,7 +6,7 @@ var $=function(s){return document.querySelector(s)};
 var domBgCanvas=$('#bgCanvas'),domLyricPCanvas=$('#lyricParticleCanvas');
 var domNowTitle=$('#nowTitle'),domNowArtist=$('#nowArtist');
 var domPlayIndicator=$('#playIndicator'),domIndicatorDot=$('#indicatorDot'),domIndicatorText=$('#indicatorText');
-var domCenterLyrics=$('#centerLyrics'),domLyricLines=$('#lyricLinesContainer');
+var domCenterLyrics=$('#centerLyrics'),domLyricLines=$('#lyricLinesStack'),domLyricViewport=$('#lyricViewport');
 var domLyricBgWrapper=$('#lyricBgWrapper'),domLyricBgImgA=$('#lyricBgImgA'),domLyricBgImgB=$('#lyricBgImgB');
 var domSongList=$('#songList'),domSongCount=$('#songCount');
 var domBtnExport=$('#btnExport'),domBtnImport=$('#btnImport'),domImportFile=$('#importFileInput');
@@ -164,43 +164,35 @@ requestAnimationFrame(an)})()
 })();
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Lyrics engine — rAF 驱动，逐词 [start,end] 区间
+//  Lyrics engine — 物理滚动 + 逐词高亮
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-var lyricBlocks=[];        // [{time,text,words:[{word,start,end}]}]
-var wordSpans=[];          // cached DOM refs for current block
-var activeBlock=-1;        // which block is rendered
-var prevActiveW=-1;        // previous active word index
-var lyricRaf=null;         // single rAF handle
+var lyricTrack=[];          // [{time,text,words:[{word,start,end}]}]
+var trackLines=[];          // cached DOM line elements
+var trackWords=[];          // cached word spans for current line
+var trackCurIdx=-1;         // current line index in track
+var trackPrevWord=-1;       // previous active word index
+var lyricRaf=null;          // single rAF handle
+var LYRIC_LH=0;             // measured line height (set on render)
 
-// CJK 检测
-function isCJK(c){var n=c.charCodeAt(0);return(n>=0x4e00&&n<=0x9fff)||(n>=0x3400&&n<=0x4dbf)||(n>=0x3000&&n<=0x303f)||(n>=0xff00&&n<=0xffef)}
+// ── 工具函数 ──
+function toSec(m,s,ms){return Math.floor((parseInt(m)*60+parseInt(s)+(ms?parseInt(ms.padEnd(3,'0'))/1000:0))*100)/100}
 
-// 把文本片段拆成"单词单元": 英文按空格分词, CJK逐字拆分
 function tokenize(text){
   if(!text)return[];
-  // 如果是纯 CJK (含标点), 逐字拆分
   var hasLatin=/[a-zA-Z]/.test(text);
   if(!hasLatin){var res=[];for(var i=0;i<text.length;i++){var ch=text[i];if(ch!==' ')res.push(ch)}return res}
-  // 混合或纯英文: 先按空格分, 再对每个 token 进一步处理
   var parts=text.split(/\s+/).filter(Boolean),tokens=[];
   for(var i=0;i<parts.length;i++){
     var p=parts[i];
-    // 如果 token 中全是 CJK → 拆字符
     if(/^[一-鿿㐀-䶿　-〿＀-￯]+$/.test(p)){for(var j=0;j<p.length;j++)tokens.push(p[j])}
-    else tokens.push(p) // English word as-is
+    else tokens.push(p)
   }
   return tokens
 }
 
-// 精确时间转换
-function toSec(m,s,ms){return Math.floor((parseInt(m)*60+parseInt(s)+(ms?parseInt(ms.padEnd(3,'0'))/1000:0))*100)/100}
-
-// 核心: LRC → lyricBlocks[{time,text,words:[{word,start,end}]}]
 function parseLrcToBlocks(raw){
   if(!raw||!raw.trim())return[];
-  var lines=raw.split('\n');
-  // 收集所有带时间戳的行
-  var timed=[];
+  var lines=raw.split('\n'),timed=[];
   for(var i=0;i<lines.length;i++){
     var l=lines[i].trim();if(!l||l[0]==='{')continue;
     var stamps=[],re=/\[(\d{1,3}):(\d{2})(?:\.(\d{1,3}))?\]/g,m;
@@ -218,116 +210,125 @@ function parseLrcToBlocks(raw){
     timed.push({idx:i,sec:frags[0].sec,text:fullText,frags:frags})
   }
   timed.sort(function(a,b){return a.sec-b.sec});
-  // 为每行生成逐词 [start,end] 时间戳
   var blocks=[];
   for(var t=0;t<timed.length;t++){
     var blk=timed[t];
     var nextSec=(t+1<timed.length)?timed[t+1].sec:blk.sec+5;
     if(nextSec<=blk.sec)nextSec=blk.sec+5;
-    var frags=blk.frags;
-    var allWords=[];
+    var allWords=[],frags=blk.frags;
     if(frags.length===1){
-      // 单时间戳: tokenize → 时间均匀分配
-      var tokens=tokenize(frags[0].txt);
-      if(!tokens.length)continue;
+      var tokens=tokenize(frags[0].txt);if(!tokens.length)continue;
       var dur=nextSec-blk.sec;
       for(var wi=0;wi<tokens.length;wi++){
         var ws=Math.floor((blk.sec+(wi/tokens.length)*dur)*100)/100;
         var we=Math.floor((blk.sec+((wi+1)/tokens.length)*dur)*100)/100;
-        if(we<=ws)we=ws+0.05;
-        allWords.push({word:tokens[wi],start:ws,end:we})
+        if(we<=ws)we=ws+0.05;allWords.push({word:tokens[wi],start:ws,end:we})
       }
     }else{
-      // 多时间戳: 每个 fragment 是一个或几个 word token
       for(var fi=0;fi<frags.length;fi++){
-        var frag=frags[fi];
-        var fNext=(fi+1<frags.length)?frags[fi+1].sec:nextSec;
+        var frag=frags[fi];var fNext=(fi+1<frags.length)?frags[fi+1].sec:nextSec;
         if(fNext<=frag.sec)fNext=frag.sec+0.3;
-        var toks=tokenize(frag.txt);
-        if(!toks.length)continue;
+        var toks=tokenize(frag.txt);if(!toks.length)continue;
         var fDur=fNext-frag.sec;
         for(var si=0;si<toks.length;si++){
           var ws=Math.floor((frag.sec+(si/toks.length)*fDur)*100)/100;
           var we=Math.floor((frag.sec+((si+1)/toks.length)*fDur)*100)/100;
-          if(we<=ws)we=ws+0.05;
-          allWords.push({word:toks[si],start:ws,end:we})
+          if(we<=ws)we=ws+0.05;allWords.push({word:toks[si],start:ws,end:we})
         }
       }
     }
-    if(allWords.length){blocks.push({time:blk.sec,text:blk.text,words:allWords})}
+    if(allWords.length)blocks.push({time:blk.sec,text:blk.text,words:allWords})
   }
   return blocks
 }
 
-function findBlockIdx(){
-  if(!lyricBlocks.length)return 0;
-  var ct=Math.floor((domAudio.currentTime||0)*100)/100,idx=0;
-  for(var i=0;i<lyricBlocks.length;i++){if(lyricBlocks[i].time<=ct)idx=i;else break}
-  return idx
+// ── 物理滚动公式 ──
+// 目标: 把第 idx 行放在视口正中央
+function computeTranslateY(idx,totalLines){
+  var vh=domLyricViewport.clientHeight;
+  var lh=LYRIC_LH||56; // 默认 56px
+  // 居中偏移
+  return -(idx*lh)+(vh/2-lh/2)
 }
 
-// 渲染当前行 + 上下文 → DOM（行切换时调用）
-function renderCenterLyrics(){
-  domLyricLines.innerHTML='';wordSpans=[];prevActiveW=-1;
-  if(!lyricBlocks.length){domLyricLines.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';return}
-  var stack=document.createElement('div');stack.className='lyric-lines-stack';
-  var idx=activeBlock,total=lyricBlocks.length;
-  var offsets=[-2,-1,0,1,2];
-  for(var k=0;k<offsets.length;k++){
-    var o=offsets[k],li=idx+o;if(li<0||li>=total)continue;
-    var line=document.createElement('span');line.className='lyric-line';
-    var blk=lyricBlocks[li];
-    if(o===0){
-      line.classList.add('current');
-      for(var j=0;j<blk.words.length;j++){
-        var sp=document.createElement('span');sp.className='lyric-word pending';sp.textContent=blk.words[j].word;
-        wordSpans.push(sp);line.appendChild(sp)
-      }
-    }else{
-      line.textContent=blk.text;
-      if(o===-2)line.classList.add('far-before');else if(o===-1)line.classList.add('near-before');
-      else if(o===1)line.classList.add('near-after');else if(o===2)line.classList.add('far-after')
-    }
-    stack.appendChild(line)
+function applyLineClasses(curIdx,total){
+  for(var i=0;i<trackLines.length;i++){
+    var li=parseInt(trackLines[i].dataset.trackIdx);if(isNaN(li))continue;
+    var d=li-curIdx;var cls='lyric-line';
+    if(d===0)cls+=' current';
+    else if(d===-1)cls+=' near-before';else if(d===1)cls+=' near-after';
+    else if(d===-2)cls+=' mid-before';else if(d===2)cls+=' mid-after';
+    else if(d<-2)cls+=' far-before';else cls+=' far-after';
+    trackLines[i].className=cls
   }
-  domLyricLines.appendChild(stack);
-  lyricTick(true)
 }
 
-// rAF 逐词检测
-function lyricTick(init){
-  var words=lyricBlocks[activeBlock]?lyricBlocks[activeBlock].words:null;
-  if(!words||!wordSpans.length)return;
+// ── 渲染所有歌词行到 DOM（一次性构建）──
+function buildLyricDOM(){
+  domLyricLines.innerHTML='';trackLines=[];trackWords=[];trackCurIdx=-1;trackPrevWord=-1;
+  if(!lyricTrack.length){domLyricLines.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';return}
+  for(var i=0;i<lyricTrack.length;i++){
+    var blk=lyricTrack[i],line=document.createElement('span');
+    line.className='lyric-line far-after';line.textContent=blk.text;line.dataset.trackIdx=i;
+    trackLines.push(line);domLyricLines.appendChild(line)
+  }
+  // 测量行高
+  if(trackLines.length>0){LYRIC_LH=trackLines[0].getBoundingClientRect().height;if(LYRIC_LH<30)LYRIC_LH=56}
+}
+
+// ── 更新当前行的逐词 DOM ──
+function rebuildWordSpans(curIdx){
+  // 清理旧 wordSpans
+  for(var i=0;i<trackLines.length;i++){if(trackLines[i].querySelector('.lyric-word'))trackLines[i].textContent=lyricTrack[parseInt(trackLines[i].dataset.trackIdx)].text}
+  trackWords=[];trackPrevWord=-1;
+  var blk=lyricTrack[curIdx];if(!blk)return;
+  var line=trackLines[curIdx];if(!line)return;
+  line.innerHTML='';
+  for(var j=0;j<blk.words.length;j++){
+    var sp=document.createElement('span');sp.className='lyric-word pending';sp.textContent=blk.words[j].word;
+    trackWords.push(sp);line.appendChild(sp)
+  }
+}
+
+// ── 核心: rAF 驱动 — 位置弹射 + 逐词高亮 ──
+function lyricScrollTick(init){
+  if(!lyricTrack.length||!trackLines.length)return;
   var ct=Math.floor((domAudio.currentTime||0)*100)/100;
-  if(!init){
-    var bi=findBlockIdx();
-    if(bi!==activeBlock){activeBlock=bi;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst();return}
+  // 找到当前行
+  var idx=-1;
+  for(var i=0;i<lyricTrack.length;i++){if(lyricTrack[i].time<=ct)idx=i;else break}
+  if(idx<0)return;
+  var total=lyricTrack.length;
+  // 行变了 → 重建词 span + 重设类名 + 弹射位置
+  if(idx!==trackCurIdx||init){
+    trackCurIdx=idx;
+    if(!init||!trackWords.length)rebuildWordSpans(idx);
+    applyLineClasses(idx,total);
+    var y=computeTranslateY(idx,total);
+    domLyricLines.style.transform='translateY('+y+'px)'
   }
-  // 在当前行内找 ct 落在哪个 word 的 [start,end) 区间
-  var hit=-1;
-  for(var j=0;j<words.length;j++){if(words[j].start<=ct&&ct<words[j].end){hit=j;break}}
-  if(hit<0){
-    // 间隔期: 找最后一个 start<=ct 的 word
-    var last=-1;
-    for(var j=0;j<words.length;j++){if(words[j].start<=ct)last=j;else break}
-    if(last>=0&&last!==prevActiveW){
-      for(var j=prevActiveW+1;j<=last;j++){if(j<wordSpans.length)wordSpans[j].className='lyric-word passed'}
-      if(prevActiveW>=0&&prevActiveW<wordSpans.length)wordSpans[prevActiveW].className='lyric-word passed';
-      if(last<wordSpans.length&&!wordSpans[last].classList.contains('active')){wordSpans[last].className='lyric-word active';prevActiveW=last}
+  // 同行内: 逐词高亮
+  var words=lyricTrack[idx]?lyricTrack[idx].words:null;
+  if(words&&trackWords.length){
+    var hit=-1;
+    for(var j=0;j<words.length;j++){if(words[j].start<=ct&&ct<words[j].end){hit=j;break}}
+    if(hit<0){var last=-1;for(var j=0;j<words.length;j++){if(words[j].start<=ct)last=j;else break}
+      if(last>=0&&last!==trackPrevWord){
+        for(var j=trackPrevWord+1;j<=last;j++){if(j<trackWords.length)trackWords[j].className='lyric-word passed'}
+        if(trackPrevWord>=0&&trackPrevWord<trackWords.length)trackWords[trackPrevWord].className='lyric-word passed';
+        if(last<trackWords.length){trackWords[last].className='lyric-word active';trackPrevWord=last}
+      }
+    }else if(hit!==trackPrevWord){
+      if(trackPrevWord>=0&&trackPrevWord<trackWords.length)trackWords[trackPrevWord].className='lyric-word passed';
+      trackWords[hit].className='lyric-word active';trackPrevWord=hit;
+      for(var j=0;j<hit;j++){if(j<trackWords.length&&trackWords[j].classList.contains('pending'))trackWords[j].className='lyric-word passed'}
     }
-    return
   }
-  if(hit===prevActiveW)return; // 同一单词，不变（CSS animation 拖音呼吸继续）
-  // 旧词→passed，新词→active
-  if(prevActiveW>=0&&prevActiveW<wordSpans.length)wordSpans[prevActiveW].className='lyric-word passed';
-  wordSpans[hit].className='lyric-word active';
-  prevActiveW=hit;
-  for(var j=0;j<hit;j++){if(j<wordSpans.length&&wordSpans[j].classList.contains('pending'))wordSpans[j].className='lyric-word passed'}
 }
 
 function startLyricLoop(){
   if(lyricRaf)return;
-  function loop(){lyricRaf=requestAnimationFrame(loop);if(isPlaying&&lyricBlocks.length&&wordSpans.length)lyricTick()}
+  function loop(){lyricRaf=requestAnimationFrame(loop);if(isPlaying&&lyricTrack.length&&trackLines.length)lyricScrollTick()}
   lyricRaf=requestAnimationFrame(loop)
 }
 function stopLyricLoop(){if(lyricRaf){cancelAnimationFrame(lyricRaf);lyricRaf=null}}
@@ -335,26 +336,26 @@ function stopLyricLoop(){if(lyricRaf){cancelAnimationFrame(lyricRaf);lyricRaf=nu
 // 无时间戳歌词回退
 function startPlainLyricTimer(){
   if(lyricAdvanceTimer)clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null;
-  if(lyricBlocks.length<=1)return;
-  if(lyricBlocks.every(function(b){return b.time>=0}))return;
-  if(isPlaying){lyricAdvanceTimer=setInterval(function(){if(!isPlaying)return;if(activeBlock<lyricBlocks.length-1){activeBlock++;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst()}else{clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null}},4000)}
+  if(lyricTrack.length<=1)return;
+  if(lyricTrack.every(function(b){return b.time>=0}))return;
+  if(isPlaying){lyricAdvanceTimer=setInterval(function(){if(!isPlaying)return;if(trackCurIdx<lyricTrack.length-1){var y=computeTranslateY(trackCurIdx,lyricTrack.length);domLyricLines.style.transform='translateY('+y+'px)';applyLineClasses(trackCurIdx,lyricTrack.length);trackCurIdx++;rebuildWordSpans(trackCurIdx)}else{clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null}},4000)}
 }
 
 function refreshLyricsDisplay(){
   if(!currentPlayingId){domCenterLyrics.classList.remove('show');domBtnPlayPause.innerHTML='▶';domBtnPlayPause.className='pb-btn-play paused';stopLyricLoop();hideLyricBackground();return}
   var c=lyricsCache[currentPlayingId];
   if(c&&c.text){
-    lyricBlocks=parseLrcToBlocks(c.text);
-    if(!lyricBlocks.length&&currentPlayingId){
+    lyricTrack=parseLrcToBlocks(c.text);
+    if(!lyricTrack.length&&currentPlayingId){
       var cs=playlist.find(function(s){return s.id===currentPlayingId});
       if(cs&&cs.source==='netease'&&cs.neteaseId){delete lyricsCache[currentPlayingId];saveLyricsCache();fetchNeteaseLyrics(cs.neteaseId)}
     }
-    activeBlock=findBlockIdx();renderCenterLyrics();startPlainLyricTimer();startLyricLoop()
-  }else{lyricBlocks=[];activeBlock=0;domLyricLines.innerHTML='<span class="no-lyrics">暂无歌词，播放后自动获取</span>'}
+    buildLyricDOM();lyricScrollTick(true);startPlainLyricTimer();startLyricLoop()
+  }else{lyricTrack=[];trackLines=[];trackWords=[];domLyricLines.innerHTML='<span class="no-lyrics">暂无歌词，播放后自动获取</span>'}
   domCenterLyrics.classList.add('show')
 }
 
-function stopLyricsDisplay(){stopLyricLoop();lyricBlocks=[];wordSpans=[];prevActiveW=-1;activeBlock=-1}
+function stopLyricsDisplay(){stopLyricLoop();lyricTrack=[];trackLines=[];trackWords=[];trackCurIdx=-1;trackPrevWord=-1}
 
 async function fetchNeteaseLyrics(id){
   var s=playlist.find(function(s){return s.neteaseId===id});var sid=s?s.id:null;

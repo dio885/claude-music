@@ -47,39 +47,39 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .center-lyrics.show{display:block}
 
 /* 胶囊形毛玻璃面板 */
-.lyric-glass-panel{position:relative;display:inline-block;padding:52px 68px;border-radius:48px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 32px 96px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.35);transition:all .5s cubic-bezier(.23,1,.32,1);animation:panelEnter .55s cubic-bezier(.23,1,.32,1) both;max-width:90vw;min-width:280px}
+.lyric-glass-panel{position:relative;overflow:hidden;padding:0;border-radius:48px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 32px 96px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.35);transition:opacity .5s;animation:panelEnter .55s cubic-bezier(.23,1,.32,1) both;max-width:90vw;min-width:280px;width:auto;height:340px}
 @keyframes panelEnter{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-/* 歌词行栈 */
-.lyric-lines-stack{display:flex;flex-direction:column;align-items:center;gap:14px}
+/* 滚动视口 — 固定高度，内容在内部垂直移动 */
+.lyric-viewport{position:relative;width:100%;height:100%;overflow:hidden}
 
-/* 通用歌词行 */
-.lyric-line{font-family:'Inter','SF Pro Display','Source Han Sans SC','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;font-weight:400;letter-spacing:.05em;line-height:1.6;white-space:nowrap;display:block;transition:all .5s cubic-bezier(.23,1,.32,1);position:relative}
+/* 歌词行栈 — 禁用所有 CSS transition，位置由 JS transform 瞬间控制 */
+.lyric-lines-stack{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;position:absolute;left:0;right:0;top:0;will-change:transform;transition:none!important;animation:none!important}
+
+/* 通用歌词行 — 无 transition，无 animation */
+.lyric-line{font-family:'Inter','SF Pro Display','Source Han Sans SC','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;font-weight:400;letter-spacing:.05em;line-height:1.6;white-space:nowrap;display:block;transition:none!important;position:relative;padding:10px 68px}
 
 /* 偏远行 — 最小最淡 */
-.lyric-line.far-before,.lyric-line.far-after{font-size:17px;color:rgba(255,255,255,.10);font-weight:300;letter-spacing:.03em}
+.lyric-line.far-before,.lyric-line.far-after{font-size:16px;color:rgba(255,255,255,.08);font-weight:300;letter-spacing:.03em}
+
+/* 中等距离行 */
+.lyric-line.mid-before,.lyric-line.mid-after{font-size:18px;color:rgba(255,255,255,.14);font-weight:350}
 
 /* 相邻行 */
-.lyric-line.near-before,.lyric-line.near-after{font-size:20px;color:rgba(255,255,255,.18);font-weight:350}
+.lyric-line.near-before,.lyric-line.near-after{font-size:22px;color:rgba(255,255,255,.22);font-weight:400}
 
-/* 紧邻行 */
-.lyric-line.prev,.lyric-line.next{font-size:24px;color:rgba(255,255,255,.32);font-weight:450}
-
-/* 当前行 — 字符心跳爆发 */
-.lyric-line.current{font-size:52px;font-weight:700;letter-spacing:.12em;display:inline-block;animation:lyricBreathe 3.2s ease-in-out infinite}
+/* 当前行 — 大字号，无呼吸动画（位置由滚动控制） */
+.lyric-line.current{font-size:44px;font-weight:700;letter-spacing:.08em;color:#fff;text-shadow:0 0 20px rgba(255,255,255,.4),0 0 60px rgba(180,160,255,.25);animation:none!important}
 @keyframes lyricBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.02)}}
 
 /* 逐单词 span */
 .lyric-word{display:inline-block;transition:color .12s ease-out,text-shadow .12s ease-out;position:relative;margin:0 .08em}
-/* 未唱到: 暗白 */
 .lyric-word.pending{color:rgba(255,255,255,.22);text-shadow:none}
-/* 已唱过: 柔和青色 */
 .lyric-word.passed{color:#00e0f0;text-shadow:0 0 8px rgba(0,224,240,.3),0 0 20px rgba(0,180,200,.15)}
-/* 当前单词 — 高亮 + 拖音呼吸 */
 .lyric-word.active{color:#fff;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 18px rgba(255,255,255,.5),0 0 36px rgba(0,240,255,.7),0 0 75px rgba(0,200,255,.45);animation:wordPulse .8s ease-in-out infinite}
 @keyframes wordPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 
-/* 非当前行 */
+/* 非当前行文字 */
 .lyric-line:not(.current){color:rgba(255,255,255,.1)}
 
 /* 无歌词 */
@@ -210,10 +210,11 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 @media(max-width:900px){
   .left-zone{left:20px;top:20px;max-width:220px}
   .now-playing-title{font-size:20px}
-  .lyric-line.current{font-size:37px}
-  .lyric-glass-panel{padding:38px 44px;border-radius:36px;max-width:88vw}
-  .lyric-lines-stack{gap:10px}
-  .lyric-line.far-before,.lyric-line.far-after{font-size:14px}
+  .lyric-line.current{font-size:34px}
+  .lyric-glass-panel{height:260px;border-radius:36px;max-width:88vw}
+  .lyric-line{padding:8px 44px}
+  .lyric-line.far-before,.lyric-line.far-after{font-size:13px}
+  .lyric-line.mid-before,.lyric-line.mid-after{font-size:14px}
   .lyric-line.near-before,.lyric-line.near-after{font-size:16px}
   .lyric-bg-image{width:80vmin;height:80vmin;max-width:500px;max-height:500px}
   .playlist-panel{right:10px;width:340px;max-height:75vh;border-radius:14px}
@@ -221,10 +222,11 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 }
 @media(max-width:640px){
   .left-zone{position:relative;left:auto;top:auto;max-width:100%;padding:16px 16px 0;text-align:center}
-  .lyric-line.current{font-size:28px}
-  .lyric-glass-panel{padding:28px 24px;border-radius:28px;max-width:92vw;min-width:auto}
-  .lyric-lines-stack{gap:8px}
-  .lyric-line.far-before,.lyric-line.far-after{font-size:12px}
+  .lyric-line.current{font-size:24px}
+  .lyric-glass-panel{height:200px;border-radius:28px;max-width:92vw;min-width:auto}
+  .lyric-line{padding:6px 20px}
+  .lyric-line.far-before,.lyric-line.far-after{font-size:11px}
+  .lyric-line.mid-before,.lyric-line.mid-after{font-size:12px}
   .lyric-line.near-before,.lyric-line.near-after{font-size:14px}
   .lyric-bg-image{width:90vmin;height:90vmin;max-width:350px;max-height:350px;min-width:200px;min-height:200px}
   .playlist-panel{right:auto;top:auto;transform:none;width:calc(100% - 16px);margin:0 8px;max-height:45vh;position:relative}
@@ -248,7 +250,9 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 
 <div class="center-lyrics" id="centerLyrics">
   <div class="lyric-glass-panel">
-    <div id="lyricLinesContainer"></div>
+    <div class="lyric-viewport" id="lyricViewport">
+      <div class="lyric-lines-stack" id="lyricLinesStack"></div>
+    </div>
   </div>
 </div>
 
