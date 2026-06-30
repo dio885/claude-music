@@ -266,7 +266,8 @@ function applyLineClasses(curIdx,total){
 // ── 渲染所有歌词行到 DOM（一次性构建）──
 function buildLyricDOM(){
   domLyricLines.innerHTML='';trackLines=[];trackWords=[];trackCurIdx=-1;trackPrevWord=-1;
-  if(!lyricTrack.length){domLyricLines.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';return}
+  if(!lyricTrack.length){domLyricViewport.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';domLyricLines.innerHTML='';return}
+  domLyricViewport.innerHTML='';domLyricViewport.appendChild(domLyricLines);
   for(var i=0;i<lyricTrack.length;i++){
     var blk=lyricTrack[i],line=document.createElement('span');
     line.className='lyric-line far-after';line.textContent=blk.text;line.dataset.trackIdx=i;
@@ -351,7 +352,7 @@ function refreshLyricsDisplay(){
       if(cs&&cs.source==='netease'&&cs.neteaseId){delete lyricsCache[currentPlayingId];saveLyricsCache();fetchNeteaseLyrics(cs.neteaseId)}
     }
     buildLyricDOM();lyricScrollTick(true);startPlainLyricTimer();startLyricLoop()
-  }else{lyricTrack=[];trackLines=[];trackWords=[];domLyricLines.innerHTML='<span class="no-lyrics">暂无歌词，播放后自动获取</span>'}
+  }else{lyricTrack=[];trackLines=[];trackWords=[];domLyricLines.innerHTML='';domLyricViewport.innerHTML='<span class="no-lyrics">暂无歌词，播放后自动获取</span>'}
   domCenterLyrics.classList.add('show')
 }
 

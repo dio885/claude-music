@@ -43,15 +43,15 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .lyric-bg-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(6,6,13,.35) 0%,rgba(6,6,13,.75) 70%,rgba(6,6,13,.92) 100%)}
 
 /* ===== 桌面歌词悬浮面板 ===== */
-.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;display:none}
-.center-lyrics.show{display:block}
+.center-lyrics{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;display:none;text-align:center}
+.center-lyrics.show{display:block;text-align:center}
 
 /* 胶囊形毛玻璃面板 — 自适应宽度 */
 .lyric-glass-panel{position:relative;display:inline-block;padding:28px 60px;border-radius:48px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 32px 96px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.35);transition:opacity .5s;animation:panelEnter .55s cubic-bezier(.23,1,.32,1) both;max-width:90vw;min-width:280px;text-align:center}
 @keyframes panelEnter{from{opacity:0;transform:translateY(18px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-/* 滚动视口 — 固定高度，由 JS 控制内部滚动 */
-.lyric-viewport{position:relative;width:100%;height:300px;overflow:hidden;text-align:center}
+/* 滚动视口 — 固定高度，由 JS 控制内部滚动，flex 居中无歌词文本 */
+.lyric-viewport{position:relative;width:100%;height:300px;overflow:hidden;display:flex;align-items:center;justify-content:center}
 
 /* 歌词行栈 — position:absolute 在视口内，由 JS translateY 瞬间定位 */
 .lyric-lines-stack{position:absolute;left:0;right:0;top:0;will-change:transform;transition:none!important;animation:none!important}
