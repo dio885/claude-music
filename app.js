@@ -208,7 +208,7 @@ function parseLrcToBlocks(raw){
     var blk=timed[t];
     var nextSec=(t+1<timed.length)?timed[t+1].sec:blk.sec+5;
     if(nextSec<=blk.sec)nextSec=blk.sec+5;
-    var dur=nextSec-blik.sec;
+    var dur=nextSec-blk.sec;
     var frags=blk.frags;
     // 为每个片段内的字符分配时间
     var allChars=[];
