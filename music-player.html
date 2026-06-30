@@ -471,7 +471,7 @@ function parseLrcToBlocks(raw){
       // 单时间戳: tokenize → 时间均匀分配
       var tokens=tokenize(frags[0].txt);
       if(!tokens.length)continue;
-      var dur=nextSec-blik.sec;
+      var dur=nextSec-blk.sec;
       for(var wi=0;wi<tokens.length;wi++){
         var ws=Math.floor((blk.sec+(wi/tokens.length)*dur)*100)/100;
         var we=Math.floor((blk.sec+((wi+1)/tokens.length)*dur)*100)/100;
