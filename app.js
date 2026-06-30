@@ -163,31 +163,49 @@ for(var j=bp.length-1;j>=0;j--){var b=bp[j];b.x+=b.vx;b.y+=b.vy;b.vx*=.96;b.vy*=
 requestAnimationFrame(an)})()
 })();
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Lyrics engine — rAF 驱动，逐字 [start,end] 区间
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-var lyricBlocks=[];       // [{time,text,chars:[{start,end,char}]}]
-var charSpans=[];         // cached DOM refs for current block
-var activeBlock=-1;       // which block is rendered
-var prevActive=-1;        // previous active char index
-var lyricRaf=null;        // single rAF handle
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Lyrics engine — rAF 驱动，逐词 [start,end] 区间
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var lyricBlocks=[];        // [{time,text,words:[{word,start,end}]}]
+var wordSpans=[];          // cached DOM refs for current block
+var activeBlock=-1;        // which block is rendered
+var prevActiveW=-1;        // previous active word index
+var lyricRaf=null;         // single rAF handle
 
-// 精确时间转换: mm:ss.xx → 秒, 消除浮点误差
+// CJK 检测
+function isCJK(c){var n=c.charCodeAt(0);return(n>=0x4e00&&n<=0x9fff)||(n>=0x3400&&n<=0x4dbf)||(n>=0x3000&&n<=0x303f)||(n>=0xff00&&n<=0xffef)}
+
+// 把文本片段拆成"单词单元": 英文按空格分词, CJK逐字拆分
+function tokenize(text){
+  if(!text)return[];
+  // 如果是纯 CJK (含标点), 逐字拆分
+  var hasLatin=/[a-zA-Z]/.test(text);
+  if(!hasLatin){var res=[];for(var i=0;i<text.length;i++){var ch=text[i];if(ch!==' ')res.push(ch)}return res}
+  // 混合或纯英文: 先按空格分, 再对每个 token 进一步处理
+  var parts=text.split(/\s+/).filter(Boolean),tokens=[];
+  for(var i=0;i<parts.length;i++){
+    var p=parts[i];
+    // 如果 token 中全是 CJK → 拆字符
+    if(/^[一-鿿㐀-䶿　-〿＀-￯]+$/.test(p)){for(var j=0;j<p.length;j++)tokens.push(p[j])}
+    else tokens.push(p) // English word as-is
+  }
+  return tokens
+}
+
+// 精确时间转换
 function toSec(m,s,ms){return Math.floor((parseInt(m)*60+parseInt(s)+(ms?parseInt(ms.padEnd(3,'0'))/1000:0))*100)/100}
 
-// 核心: LRC → lyricBlocks[{time,text,chars:[{start,end,char}]}]
+// 核心: LRC → lyricBlocks[{time,text,words:[{word,start,end}]}]
 function parseLrcToBlocks(raw){
   if(!raw||!raw.trim())return[];
-  var lines=raw.split('\n'),blocks=[],lastTime=0;
-  // 先收集所有带时间戳的行
+  var lines=raw.split('\n');
+  // 收集所有带时间戳的行
   var timed=[];
   for(var i=0;i<lines.length;i++){
     var l=lines[i].trim();if(!l||l[0]==='{')continue;
-    // 提取本行所有时间戳标记
     var stamps=[],re=/\[(\d{1,3}):(\d{2})(?:\.(\d{1,3}))?\]/g,m;
     while((m=re.exec(l))!==null){stamps.push({idx:m.index,len:m[0].length,sec:toSec(m[1],m[2],m[3])})}
     if(!stamps.length)continue;
-    // 提取每个时间戳后的文字片段
     var frags=[];
     for(var j=0;j<stamps.length;j++){
       var s=stamps[j],start=s.idx+s.len;
@@ -196,42 +214,51 @@ function parseLrcToBlocks(raw){
       if(txt)frags.push({sec:s.sec,txt:txt})
     }
     if(!frags.length)continue;
-    // 合并所有片段为整句文字
-    var fullText=frags.map(function(f){return f.txt}).join('');
-    var blockStart=frags[0].sec;lastTime=blockStart;
-    timed.push({idx:i,sec:blockStart,text:fullText,frags:frags,stamps:stamps})
+    var fullText=frags.map(function(f){return f.txt}).join(' ');
+    timed.push({idx:i,sec:frags[0].sec,text:fullText,frags:frags})
   }
-  // 按时间排序
   timed.sort(function(a,b){return a.sec-b.sec});
-  // 为每块生成逐字 [start,end] 时间戳
+  // 为每行生成逐词 [start,end] 时间戳
+  var blocks=[];
   for(var t=0;t<timed.length;t++){
     var blk=timed[t];
     var nextSec=(t+1<timed.length)?timed[t+1].sec:blk.sec+5;
     if(nextSec<=blk.sec)nextSec=blk.sec+5;
-    var dur=nextSec-blk.sec;
     var frags=blk.frags;
-    // 为每个片段内的字符分配时间
-    var allChars=[];
-    for(var fi=0;fi<frags.length;fi++){
-      var frag=frags[fi];
-      var fNext=(fi+1<frags.length)?frags[fi+1].sec:nextSec;
-      if(fNext<=frag.sec)fNext=frag.sec+0.3;
-      var fDur=fNext-frag.sec;
-      for(var ci=0;ci<frag.txt.length;ci++){
-        var cs=Math.floor((frag.sec+(ci/frag.txt.length)*fDur)*100)/100;
-        var ce;if(ci+1<frag.txt.length){ce=Math.floor((frag.sec+((ci+1)/frag.txt.length)*fDur)*100)/100}else{ce=Math.floor(fNext*100)/100}
-        if(ce<=cs)ce=cs+0.05;
-        allChars.push({start:cs,end:ce,char:frag.txt[ci]})
+    var allWords=[];
+    if(frags.length===1){
+      // 单时间戳: tokenize → 时间均匀分配
+      var tokens=tokenize(frags[0].txt);
+      if(!tokens.length)continue;
+      var dur=nextSec-blik.sec;
+      for(var wi=0;wi<tokens.length;wi++){
+        var ws=Math.floor((blk.sec+(wi/tokens.length)*dur)*100)/100;
+        var we=Math.floor((blk.sec+((wi+1)/tokens.length)*dur)*100)/100;
+        if(we<=ws)we=ws+0.05;
+        allWords.push({word:tokens[wi],start:ws,end:we})
+      }
+    }else{
+      // 多时间戳: 每个 fragment 是一个或几个 word token
+      for(var fi=0;fi<frags.length;fi++){
+        var frag=frags[fi];
+        var fNext=(fi+1<frags.length)?frags[fi+1].sec:nextSec;
+        if(fNext<=frag.sec)fNext=frag.sec+0.3;
+        var toks=tokenize(frag.txt);
+        if(!toks.length)continue;
+        var fDur=fNext-frag.sec;
+        for(var si=0;si<toks.length;si++){
+          var ws=Math.floor((frag.sec+(si/toks.length)*fDur)*100)/100;
+          var we=Math.floor((frag.sec+((si+1)/toks.length)*fDur)*100)/100;
+          if(we<=ws)we=ws+0.05;
+          allWords.push({word:toks[si],start:ws,end:we})
+        }
       }
     }
-    if(allChars.length){
-      blocks.push({time:blk.sec,text:blk.text,chars:allChars})
-    }
+    if(allWords.length){blocks.push({time:blk.sec,text:blk.text,words:allWords})}
   }
   return blocks
 }
 
-// 供外部查找当前 block 索引
 function findBlockIdx(){
   if(!lyricBlocks.length)return 0;
   var ct=Math.floor((domAudio.currentTime||0)*100)/100,idx=0;
@@ -239,9 +266,9 @@ function findBlockIdx(){
   return idx
 }
 
-// 渲染当前行 + 上下文行 → DOM（行切换时调用）
+// 渲染当前行 + 上下文 → DOM（行切换时调用）
 function renderCenterLyrics(){
-  domLyricLines.innerHTML='';charSpans=[];prevActive=-1;
+  domLyricLines.innerHTML='';wordSpans=[];prevActiveW=-1;
   if(!lyricBlocks.length){domLyricLines.innerHTML='<span class="no-lyrics">🎤 暂无歌词</span>';return}
   var stack=document.createElement('div');stack.className='lyric-lines-stack';
   var idx=activeBlock,total=lyricBlocks.length;
@@ -252,9 +279,9 @@ function renderCenterLyrics(){
     var blk=lyricBlocks[li];
     if(o===0){
       line.classList.add('current');
-      for(var j=0;j<blk.chars.length;j++){
-        var c=document.createElement('span');c.className='lyric-char pending';c.textContent=blk.chars[j].char;
-        charSpans.push(c);line.appendChild(c)
+      for(var j=0;j<blk.words.length;j++){
+        var sp=document.createElement('span');sp.className='lyric-word pending';sp.textContent=blk.words[j].word;
+        wordSpans.push(sp);line.appendChild(sp)
       }
     }else{
       line.textContent=blk.text;
@@ -264,54 +291,48 @@ function renderCenterLyrics(){
     stack.appendChild(line)
   }
   domLyricLines.appendChild(stack);
-  // 立即初始化当前高亮
   lyricTick(true)
 }
 
-// ── 核心: rAF 主循环（每帧只改 2 个元素）──
+// rAF 逐词检测
 function lyricTick(init){
-  var chars=lyricBlocks[activeBlock]?lyricBlocks[activeBlock].chars:null;
-  if(!chars||!charSpans.length)return;
+  var words=lyricBlocks[activeBlock]?lyricBlocks[activeBlock].words:null;
+  if(!words||!wordSpans.length)return;
   var ct=Math.floor((domAudio.currentTime||0)*100)/100;
-  // 检测是否需要切行
   if(!init){
     var bi=findBlockIdx();
     if(bi!==activeBlock){activeBlock=bi;renderCenterLyrics();if(window._lyricBurst)window._lyricBurst();return}
   }
-  // 在当前行内找到当前字符（用 [start,end) 区间）
+  // 在当前行内找 ct 落在哪个 word 的 [start,end) 区间
   var hit=-1;
-  for(var j=0;j<chars.length;j++){if(chars[j].start<=ct&&ct<chars[j].end){hit=j;break}}
+  for(var j=0;j<words.length;j++){if(words[j].start<=ct&&ct<words[j].end){hit=j;break}}
   if(hit<0){
-    // 可能在间隔期: 找最后一个 start<=ct 的字符
+    // 间隔期: 找最后一个 start<=ct 的 word
     var last=-1;
-    for(var j=0;j<chars.length;j++){if(chars[j].start<=ct)last=j;else break}
-    if(last>=0&&last!==prevActive){
-      // 标记到 last 为止的都是 sung
-      for(var j=prevActive+1;j<=last;j++){if(j<charSpans.length)charSpans[j].className='lyric-char sung'}
-      if(prevActive>=0&&prevActive<charSpans.length)charSpans[prevActive].className='lyric-char sung';
-      if(last<charSpans.length&&charSpans[last].className!=='lyric-char active'){
-        charSpans[last].className='lyric-char active';prevActive=last
-      }
+    for(var j=0;j<words.length;j++){if(words[j].start<=ct)last=j;else break}
+    if(last>=0&&last!==prevActiveW){
+      for(var j=prevActiveW+1;j<=last;j++){if(j<wordSpans.length)wordSpans[j].className='lyric-word passed'}
+      if(prevActiveW>=0&&prevActiveW<wordSpans.length)wordSpans[prevActiveW].className='lyric-word passed';
+      if(last<wordSpans.length&&!wordSpans[last].classList.contains('active')){wordSpans[last].className='lyric-word active';prevActiveW=last}
     }
     return
   }
-  if(hit===prevActive)return; // 没变化，跳过
-  // 更新: 旧字变 sung，新字变 active
-  if(prevActive>=0&&prevActive<charSpans.length)charSpans[prevActive].className='lyric-char sung';
-  charSpans[hit].className='lyric-char active';
-  prevActive=hit;
-  // 把 hit 之前的 pending 全部变 sung（首次追上时）
-  for(var j=0;j<hit;j++){if(j<charSpans.length&&charSpans[j].classList.contains('pending'))charSpans[j].className='lyric-char sung'}
+  if(hit===prevActiveW)return; // 同一单词，不变（CSS animation 拖音呼吸继续）
+  // 旧词→passed，新词→active
+  if(prevActiveW>=0&&prevActiveW<wordSpans.length)wordSpans[prevActiveW].className='lyric-word passed';
+  wordSpans[hit].className='lyric-word active';
+  prevActiveW=hit;
+  for(var j=0;j<hit;j++){if(j<wordSpans.length&&wordSpans[j].classList.contains('pending'))wordSpans[j].className='lyric-word passed'}
 }
 
 function startLyricLoop(){
   if(lyricRaf)return;
-  function loop(){lyricRaf=requestAnimationFrame(loop);if(isPlaying&&lyricBlocks.length&&charSpans.length)lyricTick()}
+  function loop(){lyricRaf=requestAnimationFrame(loop);if(isPlaying&&lyricBlocks.length&&wordSpans.length)lyricTick()}
   lyricRaf=requestAnimationFrame(loop)
 }
 function stopLyricLoop(){if(lyricRaf){cancelAnimationFrame(lyricRaf);lyricRaf=null}}
 
-// 无时间戳歌词的回退定时器
+// 无时间戳歌词回退
 function startPlainLyricTimer(){
   if(lyricAdvanceTimer)clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null;
   if(lyricBlocks.length<=1)return;
@@ -333,7 +354,7 @@ function refreshLyricsDisplay(){
   domCenterLyrics.classList.add('show')
 }
 
-function stopLyricsDisplay(){stopLyricLoop();lyricBlocks=[];charSpans=[];prevActive=-1;activeBlock=-1}
+function stopLyricsDisplay(){stopLyricLoop();lyricBlocks=[];wordSpans=[];prevActiveW=-1;activeBlock=-1}
 
 async function fetchNeteaseLyrics(id){
   var s=playlist.find(function(s){return s.neteaseId===id});var sid=s?s.id:null;

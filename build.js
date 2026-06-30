@@ -69,14 +69,15 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 .lyric-line.current{font-size:52px;font-weight:700;letter-spacing:.12em;display:inline-block;animation:lyricBreathe 3.2s ease-in-out infinite}
 @keyframes lyricBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.02)}}
 
-/* 逐字符 span */
-.lyric-char{display:inline-block;transition:transform .1s ease-out,color .1s ease-out,text-shadow .1s ease-out;will-change:transform;position:relative}
-/* 未唱到的字: 暗白 */
-.lyric-char.pending{color:rgba(255,255,255,.22);text-shadow:none}
-/* 已唱过的字: 柔和青色 */
-.lyric-char.sung{color:#00e0f0;text-shadow:0 0 8px rgba(0,224,240,.3),0 0 20px rgba(0,180,200,.15)}
-/* 当前唱到的字 — 爆发！ */
-.lyric-char.active{color:#fff;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 18px rgba(255,255,255,.5),0 0 36px rgba(0,240,255,.7),0 0 75px rgba(0,200,255,.45);transform:scale(1.55);z-index:1}
+/* 逐单词 span */
+.lyric-word{display:inline-block;transition:color .12s ease-out,text-shadow .12s ease-out;position:relative;margin:0 .08em}
+/* 未唱到: 暗白 */
+.lyric-word.pending{color:rgba(255,255,255,.22);text-shadow:none}
+/* 已唱过: 柔和青色 */
+.lyric-word.passed{color:#00e0f0;text-shadow:0 0 8px rgba(0,224,240,.3),0 0 20px rgba(0,180,200,.15)}
+/* 当前单词 — 高亮 + 拖音呼吸 */
+.lyric-word.active{color:#fff;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 18px rgba(255,255,255,.5),0 0 36px rgba(0,240,255,.7),0 0 75px rgba(0,200,255,.45);animation:wordPulse .8s ease-in-out infinite}
+@keyframes wordPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 
 /* 非当前行 */
 .lyric-line:not(.current){color:rgba(255,255,255,.1)}
