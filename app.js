@@ -243,12 +243,31 @@ function parseLrcToBlocks(raw){
 }
 
 // ── 物理滚动公式 ──
-// 目标: 把第 idx 行放在视口正中央
-function computeTranslateY(idx,totalLines){
-  var vh=domLyricViewport.clientHeight;
-  var lh=LYRIC_LH||80;  // 80px = CSS .lyric-line height
-  // 居中偏移
-  return -(idx*lh)+(vh/2-lh/2)
+// 连续插值：y = -(idx + t) × lh + vh/2 - lh/2
+// t = 当前行已过时间的比例（0..1），滚动速度 = lh / 行时长
+function computeTranslateY(){
+  if(!lyricTrack.length)return'0px';
+  var ct=Math.floor((domAudio.currentTime||0)*100)/100;
+  var vh=domLyricViewport.clientHeight,lh=LYRIC_LH||80;
+  // 找当前行
+  var idx=-1;
+  for(var i=0;i<lyricTrack.length;i++){if(lyricTrack[i].time<=ct)idx=i;else break}
+  if(idx<0)idx=0;
+  // 计算行内进度 0..1
+  var t=0;
+  var nextTime=(idx+1<lyricTrack.length)?lyricTrack[idx+1].time:lyricTrack[idx].time+5;
+  var dur=nextTime-lyricTrack[idx].time;
+  if(dur>0){t=Math.min(1,Math.max(0,(ct-lyricTrack[idx].time)/dur))}
+  var offset=idx+t;
+  return (-offset*lh+(vh/2-lh/2)).toFixed(2)+'px'
+}
+
+// 仅找整数行索引（用于类名/逐词）
+function findLineIdx(){
+  if(!lyricTrack.length)return 0;
+  var ct=Math.floor((domAudio.currentTime||0)*100)/100,idx=0;
+  for(var i=0;i<lyricTrack.length;i++){if(lyricTrack[i].time<=ct)idx=i;else break}
+  return idx
 }
 
 function applyLineClasses(curIdx,total){
@@ -291,22 +310,18 @@ function rebuildWordSpans(curIdx){
   }
 }
 
-// ── 核心: rAF 驱动 — 位置弹射 + 逐词高亮 ──
+// ── 核心: rAF 驱动 — 每帧计算位置 + 逐词高亮 ──
 function lyricScrollTick(init){
   if(!lyricTrack.length||!trackLines.length)return;
   var ct=Math.floor((domAudio.currentTime||0)*100)/100;
-  // 找到当前行
-  var idx=-1;
-  for(var i=0;i<lyricTrack.length;i++){if(lyricTrack[i].time<=ct)idx=i;else break}
-  if(idx<0)return;
-  var total=lyricTrack.length;
-  // 行变了 → 重建词 span + 重设类名 + 弹射位置
+  // ═══ 每帧：连续插值滚动 ═══
+  domLyricLines.style.transform='translateY('+computeTranslateY()+')';
+  // 整数行索引：判断是否切行
+  var idx=findLineIdx(),total=lyricTrack.length;
   if(idx!==trackCurIdx||init){
     trackCurIdx=idx;
     if(!init||!trackWords.length)rebuildWordSpans(idx);
-    applyLineClasses(idx,total);
-    var y=computeTranslateY(idx,total);
-    domLyricLines.style.transform='translateY('+y+'px)'
+    applyLineClasses(idx,total)
   }
   // 同行内: 逐词高亮
   var words=lyricTrack[idx]?lyricTrack[idx].words:null;
@@ -339,7 +354,7 @@ function startPlainLyricTimer(){
   if(lyricAdvanceTimer)clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null;
   if(lyricTrack.length<=1)return;
   if(lyricTrack.every(function(b){return b.time>=0}))return;
-  if(isPlaying){lyricAdvanceTimer=setInterval(function(){if(!isPlaying)return;if(trackCurIdx<lyricTrack.length-1){var y=computeTranslateY(trackCurIdx,lyricTrack.length);domLyricLines.style.transform='translateY('+y+'px)';applyLineClasses(trackCurIdx,lyricTrack.length);trackCurIdx++;rebuildWordSpans(trackCurIdx)}else{clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null}},4000)}
+  if(isPlaying){lyricAdvanceTimer=setInterval(function(){if(!isPlaying)return;if(trackCurIdx<lyricTrack.length-1){trackCurIdx++;rebuildWordSpans(trackCurIdx);applyLineClasses(trackCurIdx,lyricTrack.length);domLyricLines.style.transform='translateY('+computeTranslateY()+')'}else{clearInterval(lyricAdvanceTimer);lyricAdvanceTimer=null}},4000)}
 }
 
 function refreshLyricsDisplay(){
