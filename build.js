@@ -215,7 +215,7 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#06060d;c
 
 <div class="left-zone"><div class="now-playing-area"><div class="now-playing-label">♪ 正在播放</div><div class="now-playing-title" id="nowTitle"><span class="now-playing-placeholder">未选择歌曲</span></div><div class="now-playing-artist" id="nowArtist"></div><div class="play-indicator" id="playIndicator" style="display:none"><span class="dot paused" id="indicatorDot"></span><span style="font-size:10px;color:#888" id="indicatorText">已暂停</span></div></div></div>
 
-<div class="center-lyrics" id="centerLyrics" style="display:none">
+<div class="center-lyrics" id="centerLyrics">
   <div class="lyric-glass-panel">
     <div id="lyricLinesContainer"></div>
   </div>
